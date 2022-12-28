@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict
+from typing import Callable, Dict, List
 
 
 class PocketRole(Enum):
@@ -24,6 +24,9 @@ PFF_ROLE_TO_POCKET_ROLE: Dict[PFFRole, PocketRole] = {
     PFFRole.PASS_BLOCK: PocketRole.BLOCKER,
     PFFRole.PASS_RUSH: PocketRole.RUSHER,
 }
+
+# Type hint for functions that compute pocket area
+PocketAreaFunction = Callable[[List[Dict]], float]
 
 
 class InvalidPocketError(Exception):
