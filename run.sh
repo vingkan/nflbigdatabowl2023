@@ -10,8 +10,6 @@ install_python_requirements () {
     # Install Python dependencies
     pip3 install -r requirements-dev.txt
     pip3 install -r requirements.txt
-    # Install pre-commit hooks
-    pre-commit install --install-hooks
 }
 
 download_kaggle_data () {
