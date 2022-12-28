@@ -11,7 +11,7 @@ from src.pipeline.tasks import (
     write_csv,
 )
 
-DEFAULT_DATA_DIR = "/workspace/nflbigdatabowl2023/data"
+DATA_DIR = "/workspace/nflbigdatabowl2023/data"
 
 PLAY_PRIMARY_KEY = ["gameId", "playId"]
 
@@ -22,8 +22,8 @@ def main_flow(**kwargs):
     max_plays = kwargs.get("max_plays")
 
     # Read raw data
-    df_pff = task(read_csv)(f"{DEFAULT_DATA_DIR}/raw/pffScoutingData.csv")
-    df_tracking_all = task(read_csv)(f"{DEFAULT_DATA_DIR}/raw/week1.csv")
+    df_pff = task(read_csv)(f"{DATA_DIR}/raw/pffScoutingData.csv")
+    df_tracking_all = task(read_csv)(f"{DATA_DIR}/raw/week1.csv")
 
     # Limit to max plays, if requested
     df_tracking = limit_by_keys(df_tracking_all, PLAY_PRIMARY_KEY, max_plays)
@@ -41,4 +41,5 @@ def main_flow(**kwargs):
     df_areas = task(union_dataframes)(df_area_list)
 
     # Write outputs
-    task(write_csv)(df_areas, f"{DEFAULT_DATA_DIR}/outputs/pocket_areas.csv")
+    task(write_csv)(df_frame_records, f"{DATA_DIR}/outputs/frame_records.csv")
+    task(write_csv)(df_areas, f"{DATA_DIR}/outputs/pocket_areas.csv")
