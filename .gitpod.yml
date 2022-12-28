@@ -15,12 +15,16 @@ github:
 ports: []
 tasks:
   - name: Install Background
-    init: ./run.sh install-background
+    init: |
+      gp sync-await install-project
+      ./run.sh install-background
     command: |
       source .bash_aliases
       source .venv/bin/activate
   - name: Install Project
-    init: ./run.sh install-project
+    init: |
+      ./run.sh install-project
+      gp sync-done install-project
     command: |
       source .bash_aliases
       source .venv/bin/activate

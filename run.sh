@@ -20,6 +20,8 @@ install_pre_commit () {
 }
 
 download_kaggle_data () {
+    # Activate Python virtual environment
+    source .venv/bin/activate
     # Create necessary folders, if they do not exist
     mkdir -p data/zipped
     mkdir -p data/raw
