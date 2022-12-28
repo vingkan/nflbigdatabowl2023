@@ -18,7 +18,7 @@ def test_get_passer_radius_area():
 
 def test_get_passer_radius_area_no_rushers():
     frame = [{"role": "passer", "x": 0, "y": 0}]
-    
+
     expected = "No rushers in frame."
     with pytest.raises(InvalidPocketError, match=expected):
         get_passer_radius_area(frame)

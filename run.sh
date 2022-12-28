@@ -10,6 +10,8 @@ install_python_requirements () {
     # Install Python dependencies
     pip3 install -r requirements-dev.txt
     pip3 install -r requirements.txt
+    # Install pre-commit hooks
+    pre-commit install --install-hooks
 }
 
 download_kaggle_data () {
@@ -32,6 +34,10 @@ if [ "$1" == "install-project" ]; then
     install_python_requirements
     # Download Kaggle data
     download_kaggle_data
+
+elif [ "$1" == "install-python-requirements" ]; then
+    # Install Python requirements
+    install_python_requirements
 
 else
     echo "No run shortcut found for: '$1'"

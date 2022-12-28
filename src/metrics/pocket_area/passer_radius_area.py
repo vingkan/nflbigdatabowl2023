@@ -1,10 +1,8 @@
 import math
-
 from typing import Dict, List, Tuple
 
 from src.metrics.pocket_area.base import InvalidPocketError
 from src.metrics.pocket_area.helpers import get_distance, split_records_by_role
-
 
 PlayerAndDistance = Tuple[Dict, float]
 
@@ -14,7 +12,7 @@ def find_closest_player(point: Dict, players: List[Dict]) -> PlayerAndDistance:
     if not players:
         raise InvalidPocketError("No players in input.")
 
-    closest_player = {}
+    closest_player: Dict = {}
     closest_distance = float("inf")
 
     for player in players:
@@ -27,7 +25,7 @@ def find_closest_player(point: Dict, players: List[Dict]) -> PlayerAndDistance:
 
 
 def get_circle_area(radius: float) -> float:
-    """"Calculates the area of a circle using the formula: A = pi * r^2."""
+    """ "Calculates the area of a circle using the formula: A = pi * r^2."""
     area = math.pi * math.pow(radius, 2)
     return area
 

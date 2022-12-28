@@ -43,3 +43,9 @@ def test_get_distance_one_dimension():
 def test_get_distance_two_dimensions():
     actual = get_distance(a={"x": 1, "y": 1}, b={"x": 2, "y": 2})
     assert actual == pytest.approx(1.414213)
+
+
+def test_get_distance_missing_b_x_coordinate():
+    expected = "Coordinates must not be null."
+    with pytest.raises(ValueError, match=expected):
+        get_distance(a={"x": 1, "y": 1}, b={"y": 2})

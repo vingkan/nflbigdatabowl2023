@@ -1,0 +1,31 @@
+name: pre-commit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3
+
+      - name: Install Python 3.8 🐍
+        uses: "actions/setup-python@v3"
+        with:
+          python-version: "3.8"
+          cache: "pip"
+
+      - name: Get File Changes 📁
+        uses: trilom/file-changes-action@v1.2.4
+        id: file_changes
+        with:
+          prNumber: ${{ github.event.number }}
+          output: "space"
+
+      - name: Run Pre-Commit 🖊️
+        uses: pre-commit/action@v3.0.0
+        with:
+          extra_args: --files ${{ steps.file_changes.outputs.files }}
