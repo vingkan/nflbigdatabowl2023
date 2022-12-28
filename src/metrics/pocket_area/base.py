@@ -1,5 +1,18 @@
+from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional, Tuple
+
+
+@dataclass
+class PocketAreaMetadata:
+    vertices: Optional[List[Tuple[float, float]]] = None
+    radius: Optional[float] = None
+
+
+@dataclass
+class PocketArea:
+    area: float
+    metadata: PocketAreaMetadata = PocketAreaMetadata()
 
 
 class PocketRole(Enum):
@@ -26,7 +39,7 @@ PFF_ROLE_TO_POCKET_ROLE: Dict[PFFRole, PocketRole] = {
 }
 
 # Type hint for functions that compute pocket area
-PocketAreaFunction = Callable[[List[Dict]], float]
+PocketAreaFunction = Callable[[List[Dict]], PocketArea]
 
 
 class InvalidPocketError(Exception):

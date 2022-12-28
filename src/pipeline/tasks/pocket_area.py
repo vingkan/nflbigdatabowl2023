@@ -1,27 +1,47 @@
-from typing import Dict, List, Tuple
+import dataclasses
+from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 
-from src.metrics.pocket_area.base import PocketAreaFunction
+from src.metrics.pocket_area.base import PocketArea, PocketAreaFunction
 from src.pipeline.tasks.frames import FRAME_PRIMARY_KEY
 
 
-def calculate_area_safely(
+def calculate_pocket_safely(
     calculate_fn: PocketAreaFunction,
-) -> PocketAreaFunction:
+) -> Callable[[List[Dict]], Dict]:
     """
     Wraps a pocket area calculation function to return a null value if the
-    calculation function raises an exception.
+    calculation function raises an exception. Returns the pocket area and any
+    metadata as a dictionary.
     """
 
-    def calculate(records: List[Dict]) -> float:
+    def calculate(records: List[Dict]) -> Dict:
+        # If pocket area calculation fails, return a pocket with null area.
         try:
-            return calculate_fn(records)
+            pocket_area = calculate_fn(records)
         except Exception:
-            return np.nan
+            pocket_area = PocketArea(area=np.nan)
+
+        if not isinstance(pocket_area, PocketArea):
+            function_name = f"{calculate_fn.__name__}()"
+            actual_type = type(pocket_area).__name__
+            message = f"Function {function_name} returned {actual_type} instead of PocketArea."
+            raise TypeError(message)
+
+        # Convert the pocket area dataclass to a dictionary.
+        return dataclasses.asdict(pocket_area)
 
     return calculate
+
+
+def get_area_from_dict(pocket: Dict) -> float:
+    """
+    Retrieves the area value from the pocket dictionary, with a null value if
+    no area is found.
+    """
+    return pocket.get("area", np.nan)
 
 
 def calculate_pocket_area(
@@ -29,10 +49,11 @@ def calculate_pocket_area(
 ) -> pd.DataFrame:
     """Applies a pocket area calculation method to each frame in the input."""
     method_name, calculate_fn = method
-    calculate_area: PocketAreaFunction = calculate_area_safely(calculate_fn)
-    ser_area = df_frame_records["records"].apply(calculate_area)
-    ser_method = [method_name] * len(ser_area)
-    df_area = pd.DataFrame({"method": ser_method, "area": ser_area})
+    calculate_pocket = calculate_pocket_safely(calculate_fn)
+    ser_pocket = df_frame_records["records"].apply(calculate_pocket)
+    ser_method = [method_name] * len(ser_pocket)
+    df_area = pd.DataFrame({"method": ser_method, "pocket": ser_pocket})
+    df_area["area"] = df_area["pocket"].apply(get_area_from_dict)
     df_keys = df_frame_records[FRAME_PRIMARY_KEY]
     df_output = pd.concat([df_keys, df_area], axis=1)
     return df_output
