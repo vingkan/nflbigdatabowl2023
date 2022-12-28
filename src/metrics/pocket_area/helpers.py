@@ -1,9 +1,7 @@
 import math
-
 from typing import Dict, List, Tuple
 
-from src.metrics.pocket_area.base import PocketRole, InvalidPocketError
-
+from src.metrics.pocket_area.base import InvalidPocketError, PocketRole
 
 # Tuple of form (passer, blockers, rushers)
 PlayerRecordsByRole = Tuple[Dict, List[Dict], List[Dict]]
@@ -36,6 +34,9 @@ def split_records_by_role(frame: List[Dict]) -> PlayerRecordsByRole:
 def get_distance(a: Dict, b: Dict) -> float:
     ax, ay = a.get("x"), a.get("y")
     bx, by = b.get("x"), b.get("y")
+    if ax is None or ay is None or bx is None or by is None:
+        raise ValueError(("Coordinates must not be null."))
+
     dx = abs(bx - ax)
     dy = abs(by - ay)
     return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))

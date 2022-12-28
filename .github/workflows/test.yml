@@ -1,0 +1,43 @@
+name: Run Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/test.yml
+      - requirements.txt
+      - requirements-dev.txt
+      - run.sh
+      - "**.py"
+  pull_request:
+    paths:
+      - .github/workflows/test.yml
+      - requirements.txt
+      - requirements-dev.txt
+      - run.sh
+      - "**.py"
+
+jobs:
+  test-pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3
+
+      - name: Install Python 3.8 🐍
+        uses: "actions/setup-python@v3"
+        with:
+          python-version: "3.8"
+          cache: "pip"
+
+      - name: Install Python Dependencies 🔧
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          ./run.sh install-python-requirements
+
+      - name: Run Unit Tests 🧪
+        run: |
+          source .venv/bin/activate
+          pytest -vvl
