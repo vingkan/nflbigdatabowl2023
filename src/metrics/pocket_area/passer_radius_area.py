@@ -25,7 +25,7 @@ def find_closest_player(point: Dict, players: List[Dict]) -> PlayerAndDistance:
 
 
 def get_circle_area(radius: float) -> float:
-    """ "Calculates the area of a circle using the formula: A = pi * r^2."""
+    """Calculates the area of a circle using the formula: A = pi * r^2."""
     area = math.pi * math.pow(radius, 2)
     return area
 

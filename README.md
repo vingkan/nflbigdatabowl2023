@@ -2,6 +2,18 @@
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/vingkan/nflbigdatabowl2023/)
 
+## Common Commands
+
+| Command | Description |
+|:--|:--|
+| `pytest` | Run all unit tests. |
+| `git checkout -b branch_name` | Create a new branch named `branch_name`. |
+| `git status` | Check which files have been modified or added. |
+| `git add .` | Add all changes. |
+| `pre-commit run` | Run pre-commit on added changes. |
+| `git commit -m  "message"` | Create a commit with a message and run pre-commit. |
+| `git push` | Push changes to remote. |
+
 ## Setup Instructions
 
 1. Accept the GitHub invitation granting you read and write access to this repository
