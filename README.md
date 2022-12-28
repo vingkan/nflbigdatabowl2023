@@ -7,6 +7,7 @@
 | Command | Description |
 |:--|:--|
 | `pytest` | Run all unit tests. |
+| `run jupyter` | Start a Jupyter notebook server (automatically launched). |
 | `git checkout -b branch_name` | Create a new branch named `branch_name`. |
 | `git status` | Check which files have been modified or added. |
 | `git add .` | Add all changes. |

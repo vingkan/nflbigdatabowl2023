@@ -1,7 +1,12 @@
 import math
 from typing import Dict, List, Tuple
 
-from src.metrics.pocket_area.base import InvalidPocketError, PocketRole
+from src.metrics.pocket_area.base import (
+    PFF_ROLE_TO_POCKET_ROLE,
+    InvalidPocketError,
+    PFFRole,
+    PocketRole,
+)
 
 # Tuple of form (passer, blockers, rushers)
 PlayerRecordsByRole = Tuple[Dict, List[Dict], List[Dict]]
@@ -40,3 +45,15 @@ def get_distance(a: Dict, b: Dict) -> float:
     dx = abs(bx - ax)
     dy = abs(by - ay)
     return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
+
+
+def convert_pff_role_to_pocket_role(raw: str) -> str:
+    try:
+        pff_role = PFFRole(raw)
+    except ValueError:
+        pff_role = PFFRole.INVALID
+
+    pocket_role = PFF_ROLE_TO_POCKET_ROLE.get(pff_role)
+    if not pocket_role:
+        return PocketRole.UNKNOWN.value
+    return pocket_role.value

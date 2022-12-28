@@ -35,24 +35,37 @@ download_kaggle_data () {
     rm -rf data/zipped
 }
 
+start_jupyter_server () {
+    # Activate Python virtual environment
+    source .venv/bin/activate
+    # Get GitPod custom domain to allow requests to Jupyter server
+    JUPYTER_PORT=8888
+    GITPOD_DOMAIN=$(gp url "$JUPYTER_PORT")
+    # Start Jupyter server
+    jupyter notebook --port="$JUPYTER_PORT" --NotebookApp.allow_origin="$GITPOD_DOMAIN"
+}
+
 # Run commands based on chosen shortcut and options
 
-# Used to install main project dependencies needed for immediate development
+# Install main project dependencies needed for immediate development
 if [ "$1" == "install-project" ]; then
     # Install Python requirements
     install_python_requirements
 
-# Used to install dependencies in the background that will be used later
+# Install dependencies in the background that will be used later
 elif [ "$1" == "install-background" ]; then
     # Download Kaggle data
     download_kaggle_data
     # Install pre-commit
     install_pre_commit
 
-# Used to install only Python requirements
+# Install only Python requirements
 elif [ "$1" == "install-python-requirements" ]; then
-    # Install Python requirements
     install_python_requirements
+
+# Run Jupyter notebook server
+elif [ "$1" == "jupyter" ]; then
+    start_jupyter_server
 
 else
     echo "No run shortcut found for: '$1'"

@@ -11,17 +11,27 @@ github:
     addCheck: true
     addComment: true
     addBadge: false
-# TODO(vinesh): Configure port for Jupyter notebook server
-ports: []
+ports:
+  - name: Jupyter
+    port: 8888
+    onOpen: open-browser
+    visibility: public
 tasks:
-  - name: Install Background
+  - name: Background
     init: |
       gp sync-await install-project
       ./run.sh install-background
     command: |
       source .bash_aliases
       source .venv/bin/activate
-  - name: Install Project
+  - name: Jupyter
+    init: |
+      gp sync-await install-project
+      ./run.sh jupyter
+    command: |
+      source .bash_aliases
+      source .venv/bin/activate
+  - name: Main
     init: |
       ./run.sh install-project
       gp sync-done install-project

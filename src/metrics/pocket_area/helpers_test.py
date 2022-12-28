@@ -1,7 +1,11 @@
 import pytest
 
 from src.metrics.pocket_area.base import InvalidPocketError
-from src.metrics.pocket_area.helpers import get_distance, split_records_by_role
+from src.metrics.pocket_area.helpers import (
+    convert_pff_role_to_pocket_role,
+    get_distance,
+    split_records_by_role,
+)
 
 
 def test_split_records_by_role():
@@ -49,3 +53,9 @@ def test_get_distance_missing_b_x_coordinate():
     expected = "Coordinates must not be null."
     with pytest.raises(ValueError, match=expected):
         get_distance(a={"x": 1, "y": 1}, b={"y": 2})
+
+
+def test_convert_pff_role_to_pocket_role():
+    assert convert_pff_role_to_pocket_role("Pass Block") == "blocker"
+    assert convert_pff_role_to_pocket_role("Football") == "unknown"
+    assert convert_pff_role_to_pocket_role("Something Else") == "unknown"
