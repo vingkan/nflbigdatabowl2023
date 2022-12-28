@@ -41,8 +41,8 @@ start_jupyter_server () {
     # Get GitPod custom domain to allow requests to Jupyter server
     JUPYTER_PORT=8888
     GITPOD_DOMAIN=$(gp url "$JUPYTER_PORT")
-    # Start Jupyter server
-    jupyter notebook --port="$JUPYTER_PORT" --NotebookApp.allow_origin="$GITPOD_DOMAIN"
+    # Start Jupyter server (without token)
+    jupyter notebook --port="$JUPYTER_PORT" --NotebookApp.allow_origin="$GITPOD_DOMAIN" --NotebookApp.token=""
 }
 
 # Run commands based on chosen shortcut and options
