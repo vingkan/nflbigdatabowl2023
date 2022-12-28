@@ -14,6 +14,11 @@ github:
 # TODO(vinesh): Configure port for Jupyter notebook server
 ports: []
 tasks:
+  - name: Install Background
+    init: ./run.sh install-background
+    command: |
+      source .bash_aliases
+      source .venv/bin/activate
   - name: Install Project
     init: ./run.sh install-project
     command: |
