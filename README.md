@@ -1,8 +1,6 @@
 # NFL Big Data Bowl 2023
 
-NFL Big Data Bowl 2023.
-
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod-redirect.herokuapp.com/)
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/vingkan/nflbigdatabowl2023/)
 
 ## Setup Instructions
 
