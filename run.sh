@@ -61,10 +61,10 @@ if [ "$1" == "install-project" ]; then
 elif [ "$1" == "install-background" ]; then
     # Download Kaggle data
     download_kaggle_data
-    # Install pre-commit
-    install_pre_commit
     # Install system packages
     install_system_packages
+    # Install pre-commit
+    install_pre_commit
 
 # Install only Python requirements
 elif [ "$1" == "install-python-requirements" ]; then
