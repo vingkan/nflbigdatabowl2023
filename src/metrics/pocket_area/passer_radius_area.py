@@ -1,7 +1,11 @@
 import math
 from typing import Dict, List, Tuple
 
-from src.metrics.pocket_area.base import InvalidPocketError
+from src.metrics.pocket_area.base import (
+    InvalidPocketError,
+    PocketArea,
+    PocketAreaMetadata,
+)
 from src.metrics.pocket_area.helpers import get_distance, split_records_by_role
 
 PlayerAndDistance = Tuple[Dict, float]
@@ -30,7 +34,7 @@ def get_circle_area(radius: float) -> float:
     return area
 
 
-def get_passer_radius_area(frame: List[Dict]) -> float:
+def get_passer_radius_area(frame: List[Dict]) -> PocketArea:
     """
     Estimates the pocket area as the area of a circle where the radius is the
     distance from the passer to the closest rusher.
@@ -40,4 +44,6 @@ def get_passer_radius_area(frame: List[Dict]) -> float:
         raise InvalidPocketError("No rushers in frame.")
 
     closest_rusher, distance = find_closest_player(passer, rushers)
-    return get_circle_area(radius=distance)
+    area = get_circle_area(radius=distance)
+    metadata = PocketAreaMetadata(radius=distance)
+    return PocketArea(area, metadata)
