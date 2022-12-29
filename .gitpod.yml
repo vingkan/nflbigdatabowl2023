@@ -24,6 +24,7 @@ tasks:
     command: |
       source .bash_aliases
       source .venv/bin/activate
+      pre-commit install --install-hooks
   - name: Jupyter
     init: |
       gp sync-await install-project

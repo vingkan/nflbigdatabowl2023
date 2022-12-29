@@ -17,13 +17,6 @@ install_python_requirements () {
     pip3 install -r requirements.txt
 }
 
-install_pre_commit () {
-    # Activate Python virtual environment
-    source .venv/bin/activate
-    # Install pre-commit hooks
-    pre-commit install --install-hooks
-}
-
 download_kaggle_data () {
     # Activate Python virtual environment
     source .venv/bin/activate
@@ -63,8 +56,6 @@ elif [ "$1" == "install-background" ]; then
     download_kaggle_data
     # Install system packages
     install_system_packages
-    # Install pre-commit
-    install_pre_commit
 
 # Install only Python requirements
 elif [ "$1" == "install-python-requirements" ]; then
