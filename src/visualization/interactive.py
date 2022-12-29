@@ -1,10 +1,14 @@
 import math
-from typing import Dict, List
+from typing import Dict, List, Optional
 
+import dacite
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.patches import Circle, Patch, Polygon
 from matplotlib.ticker import MultipleLocator
+
+from src.metrics.pocket_area.base import InvalidPocketError, PocketArea
 
 PLOT_RATIO = 0.4
 PIXEL_RATIO = 100
@@ -26,6 +30,7 @@ MINOR_YARD_LINE = 1
 FOOTBALL_ROLE = "Football"
 RELEVANT_ROLES = "('Pass', 'Pass Block', 'Pass Rush', 'Football')"
 
+POCKET_COLOR = "#b0e3ff"
 ROLE_TO_COLOR = {
     "Football": "#4a3600",
     "Pass": "#02bda4",
@@ -34,7 +39,31 @@ ROLE_TO_COLOR = {
 }
 
 
-def create_interactive_play(df_tracking_display: pd.DataFrame):
+def get_pocket_patch_from_vertices(pocket: PocketArea) -> Patch:
+    """Gets the graphic patch for a pocket from a list of vertices."""
+    if not pocket.metadata or not pocket.metadata.vertices:
+        raise InvalidPocketError("No verticies in pocket metadata.")
+
+    vertices = pocket.metadata.vertices
+    return Polygon(vertices, color=POCKET_COLOR, fill=True)
+
+
+def get_pocket_patch(pocket: PocketArea) -> Optional[Patch]:
+    """Gets the graphic patch for a pocket, if possible."""
+    if not pocket.metadata:
+        return None
+
+    if pocket.metadata.vertices:
+        return get_pocket_patch_from_vertices(pocket)
+
+    # TODO(vinesh): Add support for pockets with radius and center.
+
+    return None
+
+
+def create_interactive_play(
+    df_tracking_display: pd.DataFrame, df_areas: Optional[pd.DataFrame] = None
+):
     """
     Creates an interactive plot of a play, with a slider to seek frames.
 
@@ -46,6 +75,8 @@ def create_interactive_play(df_tracking_display: pd.DataFrame):
         df_tracking_display: DataFrame transformed to contain all the
             columns needed for displaying tracking data, already
             filtered to only include a single play.
+        df_areas: Optional DataFrame that includes pocket area data by frame,
+            already filtered to only include a single play.
     """
 
     # Filter to relevant roles
@@ -72,7 +103,19 @@ def create_interactive_play(df_tracking_display: pd.DataFrame):
             objects_per_frame[frame_id] = []
         objects_per_frame[frame_id].append(obj)
 
-    def plot_play_frame(frame_id: int):
+    # Parse and store pocket for each frame and method.
+    pocket_per_frame_and_method: Dict[int, Dict[str, PocketArea]] = {}
+    if df_areas is not None:
+        for i, row in df_areas.iterrows():
+            frame_id = row["frameId"]
+            method = row["method"]
+            pocket_dict = row["pocket"]
+            pocket = dacite.from_dict(PocketArea, pocket_dict)
+            if frame_id not in pocket_per_frame_and_method:
+                pocket_per_frame_and_method[frame_id] = {}
+            pocket_per_frame_and_method[frame_id][method] = pocket
+
+    def plot_play_frame(frame_id: int, area_method: Optional[str]):
         """Inner function to redraw plot for the given frame."""
         # Retrieve only the objects for this frame.
         objects = objects_per_frame.get(frame_id, [])
@@ -81,7 +124,8 @@ def create_interactive_play(df_tracking_display: pd.DataFrame):
         fig, ax = plt.subplots(1, 1)
         fig.set_size_inches(x_dim, y_dim)
 
-        ax.set_title(f"Frame {frame_id}")
+        frame_title = f"Frame {frame_id}"
+        ax.set_title(frame_title)
         ax.set_axisbelow(True)
 
         ax.set_xlim(x_min - MINOR_YARD_LINE, x_max + MINOR_YARD_LINE)
@@ -94,6 +138,23 @@ def create_interactive_play(df_tracking_display: pd.DataFrame):
 
         ax.grid(which="both", color="lightgray", linestyle="-", linewidth=1)
 
+        # Render pocket, if any.
+        pocket = (
+            pocket_per_frame_and_method.get(frame_id, {}).get(area_method)
+            if area_method
+            else None
+        )
+        if pocket:
+            # Add pocket area to title.
+            area_title = f"Pocket Area = {pocket.area:.1f} sq yds"
+            frame_and_area_title = f"{frame_title}\n{area_title}"
+            ax.set_title(frame_and_area_title)
+
+            # Render pocket.
+            pocket_patch = get_pocket_patch(pocket)
+            if pocket_patch:
+                ax.add_patch(pocket_patch)
+
         # Create graphics for each object in the frame.
         for p in objects:
             # Get attributes used by all objects.
@@ -103,7 +164,7 @@ def create_interactive_play(df_tracking_display: pd.DataFrame):
 
             # Render football.
             if role == FOOTBALL_ROLE:
-                ball = plt.Circle((x, y), FOOTBALL_RADIUS, color=color)
+                ball = Circle((x, y), FOOTBALL_RADIUS, color=color)
                 ax.add_patch(ball)
                 continue
 
@@ -122,7 +183,7 @@ def create_interactive_play(df_tracking_display: pd.DataFrame):
             direction = ax.arrow(x, y, dx, dy, color="lightgray")
 
             # Render player.
-            circle = plt.Circle((x, y), PLAYER_RADIUS, color=color)
+            circle = Circle((x, y), PLAYER_RADIUS, color=color)
             ax.add_patch(circle)
 
             # Render player jersey number.
@@ -139,9 +200,28 @@ def create_interactive_play(df_tracking_display: pd.DataFrame):
             )
 
     # Attach an interactive slider to the redraw function.
-    slider_pixels = PIXEL_RATIO * x_dim
-    layout = widgets.Layout(width=f"{slider_pixels}px")
+    layout_width_pixels = PIXEL_RATIO * x_dim
+    layout = widgets.Layout(width=f"{layout_width_pixels}px")
     slider = widgets.IntSlider(
-        min=1, max=max_frames, step=1, value=1, layout=layout
+        min=1,
+        max=max_frames,
+        step=1,
+        value=1,
+        description="Frame",
+        layout=layout,
+        continuous_update=False,
     )
-    _ = widgets.interact(plot_play_frame, frame_id=slider)
+
+    # Attach an interactive dropdown to choose the pocket area algorithm.
+    dropdown = widgets.fixed(None)
+    if df_areas is not None:
+        pocket_area_methods = df_areas["method"].unique()
+        dropdown = widgets.Dropdown(
+            options=pocket_area_methods,
+            value=pocket_area_methods[0],
+            description="Area Type",
+            disabled=False,
+            layout=layout,
+        )
+
+    _ = widgets.interact(plot_play_frame, frame_id=slider, area_method=dropdown)
