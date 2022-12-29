@@ -3,6 +3,11 @@
 # Tells the script to exit if a command fails instead of continuing
 set -e
 
+install_system_packages () {
+    # Install video package for animation
+    sudo apt install -y ffmpeg
+}
+
 install_python_requirements () {
     # Create and activate Python virtual environment
     python3 -m venv .venv
@@ -10,13 +15,6 @@ install_python_requirements () {
     # Install Python dependencies
     pip3 install -r requirements-dev.txt
     pip3 install -r requirements.txt
-}
-
-install_pre_commit () {
-    # Activate Python virtual environment
-    source .venv/bin/activate
-    # Install pre-commit hooks
-    pre-commit install --install-hooks
 }
 
 download_kaggle_data () {
@@ -56,8 +54,8 @@ if [ "$1" == "install-project" ]; then
 elif [ "$1" == "install-background" ]; then
     # Download Kaggle data
     download_kaggle_data
-    # Install pre-commit
-    install_pre_commit
+    # Install system packages
+    install_system_packages
 
 # Install only Python requirements
 elif [ "$1" == "install-python-requirements" ]; then

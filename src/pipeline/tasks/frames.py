@@ -3,8 +3,8 @@ from typing import Dict, List
 import pandas as pd
 
 from src.metrics.pocket_area.helpers import convert_pff_role_to_pocket_role
+from src.pipeline.tasks.constants import FRAME_PRIMARY_KEY
 
-FRAME_PRIMARY_KEY = ["gameId", "playId", "frameId"]
 FRAME_COLUMNS = ["x", "y", "role"]
 
 
