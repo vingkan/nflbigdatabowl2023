@@ -44,7 +44,9 @@ ROLE_TO_COLOR = {
 
 
 def create_interactive_play(
-    df_tracking_display: pd.DataFrame, df_areas: Optional[pd.DataFrame] = None
+    df_tracking_display: pd.DataFrame,
+    df_areas: Optional[pd.DataFrame] = None,
+    continuous_update: bool = False,
 ):
     """
     Creates an interactive plot of a play, with a slider to seek frames.
@@ -59,6 +61,10 @@ def create_interactive_play(
             filtered to only include a single play.
         df_areas: Optional DataFrame that includes pocket area data by frame
             and by method, already filtered to only include a single play.
+
+    Additional Visualization Parameters:
+        continuous_update: If True, redraw the plot while dragging the frame ID
+            slider. If False (default), only redraw after releasing the slider.
     """
 
     # Filter to relevant roles
@@ -184,7 +190,7 @@ def create_interactive_play(
         value=1,
         description="Frame",
         layout=layout,
-        continuous_update=False,
+        continuous_update=continuous_update,
     )
 
     # Attach an interactive dropdown to choose the pocket area algorithm.
@@ -195,8 +201,8 @@ def create_interactive_play(
             options=pocket_area_methods,
             value=pocket_area_methods[0],
             description="Area Type",
-            disabled=False,
             layout=layout,
+            disabled=False,
         )
 
     _ = widgets.interact(plot_play_frame, frame_id=slider, area_method=dropdown)

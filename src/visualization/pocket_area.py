@@ -9,7 +9,10 @@ from matplotlib.ticker import MultipleLocator
 
 from src.metrics.pocket_area.base import InvalidPocketError, PocketArea
 
-POCKET_COLOR = "#b0e3ff"
+POCKET_KWARGS = dict(
+    color="#b0e3ff",
+    alpha=0.35,
+)
 
 PocketAreaNestedMap = Dict[int, Dict[str, PocketArea]]
 
@@ -33,23 +36,36 @@ def get_pocket_area_nested_map(df_areas: pd.DataFrame) -> PocketAreaNestedMap:
     return output
 
 
-def get_pocket_patch_from_vertices(pocket: PocketArea) -> Patch:
-    """Gets the graphic patch for a pocket from a list of vertices."""
-    if not pocket.metadata or not pocket.metadata.vertices:
+def get_pocket_patch_for_vertices(pocket: PocketArea) -> Patch:
+    """Gets the graphic patch for a pocket defined by a list of vertices."""
+    vertices = pocket.metadata.vertices
+    if vertices is None:
         raise InvalidPocketError("No verticies in pocket metadata.")
 
-    vertices = pocket.metadata.vertices
-    return Polygon(vertices, color=POCKET_COLOR, fill=True)
+    return Polygon(vertices, **POCKET_KWARGS, fill=True)
+
+
+def get_pocket_patch_for_circle(pocket: PocketArea) -> Patch:
+    """Gets the graphic patch for a pocket defined as a circle."""
+    center = pocket.metadata.center
+    radius = pocket.metadata.radius
+    if center is None or radius is None:
+        raise InvalidPocketError("No center or radius in pocket metadata.")
+
+    return Circle(center, radius, **POCKET_KWARGS)
 
 
 def get_pocket_patch(pocket: PocketArea) -> Optional[Patch]:
     """Gets the graphic patch for a pocket, if possible."""
-    if not pocket.metadata:
-        return None
+    vertices = pocket.metadata.vertices
+    center = pocket.metadata.center
+    radius = pocket.metadata.radius
 
-    if pocket.metadata.vertices:
-        return get_pocket_patch_from_vertices(pocket)
+    is_vertices_based = vertices is not None
+    is_circular = center is not None and radius is not None
 
-    # TODO(vinesh): Add support for pockets with radius and center.
-
+    if is_vertices_based:
+        return get_pocket_patch_for_vertices(pocket)
+    elif is_circular:
+        return get_pocket_patch_for_circle(pocket)
     return None
