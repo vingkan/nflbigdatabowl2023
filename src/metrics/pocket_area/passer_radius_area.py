@@ -5,6 +5,7 @@ from src.metrics.pocket_area.base import (
     InvalidPocketError,
     PocketArea,
     PocketAreaMetadata,
+    Point,
 )
 from src.metrics.pocket_area.helpers import get_distance, split_records_by_role
 
@@ -45,5 +46,11 @@ def get_passer_radius_area(frame: List[Dict]) -> PocketArea:
 
     closest_rusher, distance = find_closest_player(passer, rushers)
     area = get_circle_area(radius=distance)
-    metadata = PocketAreaMetadata(radius=distance)
+
+    px, py = passer["x"], passer["y"]
+    if px is None or py is None:
+        raise InvalidPocketError("Missing x, y coordinates for passer.")
+    center: Point = (px, py)
+
+    metadata = PocketAreaMetadata(radius=distance, center=center)
     return PocketArea(area, metadata)

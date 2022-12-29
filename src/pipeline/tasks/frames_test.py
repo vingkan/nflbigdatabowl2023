@@ -30,6 +30,7 @@ def test_transform_to_frames():
             "gameId": 1,
             "playId": 1,
             "frameId": 1,
+            "nflId": 1,
             "x": 1,
             "y": 1,
             "role": "passer",

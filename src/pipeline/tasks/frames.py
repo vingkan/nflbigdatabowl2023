@@ -2,8 +2,13 @@ from typing import Dict, List
 
 import pandas as pd
 
+from src.metrics.pocket_area.base import PocketRole
 from src.metrics.pocket_area.helpers import convert_pff_role_to_pocket_role
-from src.pipeline.tasks.constants import FRAME_PRIMARY_KEY
+from src.pipeline.tasks.constants import (
+    FRAME_PRIMARY_KEY,
+    PFF_PRIMARY_KEY,
+    TRACKING_PRIMARY_KEY,
+)
 
 FRAME_COLUMNS = ["x", "y", "role"]
 
@@ -18,9 +23,8 @@ def transform_to_frames(
 ) -> pd.DataFrame:
     """Transforms tracking data to pull in the data needed for each frame."""
     # Join tracking data to PFF data to get player roles
-    df_frames_joined = df_tracking.merge(
-        df_pff, on=["gameId", "playId", "nflId"], how="left"
-    )
+    df_frames_joined = df_tracking.merge(df_pff, on=PFF_PRIMARY_KEY, how="left")
+
     # Convert PFF role to pocket role
     df_frames_joined["pff_role"] = df_frames_joined["pff_role"].fillna(
         "Football"
@@ -28,8 +32,13 @@ def transform_to_frames(
     df_frames_joined["role"] = df_frames_joined["pff_role"].apply(
         convert_pff_role_to_pocket_role
     )
+    unique_pocket_roles = set(df_frames_joined["role"].unique())
+    if unique_pocket_roles == {PocketRole.UNKNOWN.value}:
+        message = "Pocket role conversion failed: only got `unknown` role."
+        raise ValueError(message)
+
     # Select and return columns
-    df_frames = df_frames_joined[FRAME_PRIMARY_KEY + FRAME_COLUMNS]
+    df_frames = df_frames_joined[TRACKING_PRIMARY_KEY + FRAME_COLUMNS]
     return df_frames
 
 

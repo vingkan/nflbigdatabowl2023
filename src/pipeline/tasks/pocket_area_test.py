@@ -4,6 +4,7 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 import pytest
+from prefect.testing.utilities import prefect_test_harness
 
 from src.metrics.pocket_area.base import PocketArea, PocketAreaMetadata
 from src.pipeline.tasks.pocket_area import (
@@ -44,6 +45,7 @@ def test_calculate_pocket_area():
                 "metadata": {
                     "vertices": None,
                     "radius": None,
+                    "center": None,
                 },
             },
             "area": 7,
@@ -60,7 +62,10 @@ def test_calculate_pocket_safely():
 
     df = pd.DataFrame()
     actual = actual_fn(df)
-    expected = {"area": 7, "metadata": {"vertices": None, "radius": None}}
+    expected = {
+        "area": 7,
+        "metadata": {"vertices": None, "radius": None, "center": None},
+    }
     assert actual == expected
 
 
@@ -72,7 +77,10 @@ def test_calculate_pocket_safely_with_exception():
 
     df = pd.DataFrame()
     actual = actual_fn(df)
-    expected = {"area": np.nan, "metadata": {"vertices": None, "radius": None}}
+    expected = {
+        "area": np.nan,
+        "metadata": {"vertices": None, "radius": None, "center": None},
+    }
     assert actual == expected
 
 

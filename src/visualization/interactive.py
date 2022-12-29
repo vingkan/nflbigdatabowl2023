@@ -9,6 +9,11 @@ from matplotlib.patches import Circle, Patch, Polygon
 from matplotlib.ticker import MultipleLocator
 
 from src.metrics.pocket_area.base import InvalidPocketError, PocketArea
+from src.visualization.pocket_area import (
+    PocketAreaNestedMap,
+    get_pocket_area_nested_map,
+    get_pocket_patch,
+)
 
 PLOT_RATIO = 0.4
 PIXEL_RATIO = 100
@@ -30,35 +35,12 @@ MINOR_YARD_LINE = 1
 FOOTBALL_ROLE = "Football"
 RELEVANT_ROLES = "('Pass', 'Pass Block', 'Pass Rush', 'Football')"
 
-POCKET_COLOR = "#b0e3ff"
 ROLE_TO_COLOR = {
     "Football": "#4a3600",
     "Pass": "#02bda4",
     "Pass Block": "#027bbd",
     "Pass Rush": "#bd0250",
 }
-
-
-def get_pocket_patch_from_vertices(pocket: PocketArea) -> Patch:
-    """Gets the graphic patch for a pocket from a list of vertices."""
-    if not pocket.metadata or not pocket.metadata.vertices:
-        raise InvalidPocketError("No verticies in pocket metadata.")
-
-    vertices = pocket.metadata.vertices
-    return Polygon(vertices, color=POCKET_COLOR, fill=True)
-
-
-def get_pocket_patch(pocket: PocketArea) -> Optional[Patch]:
-    """Gets the graphic patch for a pocket, if possible."""
-    if not pocket.metadata:
-        return None
-
-    if pocket.metadata.vertices:
-        return get_pocket_patch_from_vertices(pocket)
-
-    # TODO(vinesh): Add support for pockets with radius and center.
-
-    return None
 
 
 def create_interactive_play(
@@ -75,8 +57,8 @@ def create_interactive_play(
         df_tracking_display: DataFrame transformed to contain all the
             columns needed for displaying tracking data, already
             filtered to only include a single play.
-        df_areas: Optional DataFrame that includes pocket area data by frame,
-            already filtered to only include a single play.
+        df_areas: Optional DataFrame that includes pocket area data by frame
+            and by method, already filtered to only include a single play.
     """
 
     # Filter to relevant roles
@@ -104,16 +86,9 @@ def create_interactive_play(
         objects_per_frame[frame_id].append(obj)
 
     # Parse and store pocket for each frame and method.
-    pocket_per_frame_and_method: Dict[int, Dict[str, PocketArea]] = {}
+    stored_pockets: PocketAreaNestedMap = {}
     if df_areas is not None:
-        for i, row in df_areas.iterrows():
-            frame_id = row["frameId"]
-            method = row["method"]
-            pocket_dict = row["pocket"]
-            pocket = dacite.from_dict(PocketArea, pocket_dict)
-            if frame_id not in pocket_per_frame_and_method:
-                pocket_per_frame_and_method[frame_id] = {}
-            pocket_per_frame_and_method[frame_id][method] = pocket
+        stored_pockets = get_pocket_area_nested_map(df_areas)
 
     def plot_play_frame(frame_id: int, area_method: Optional[str]):
         """Inner function to redraw plot for the given frame."""
@@ -140,7 +115,7 @@ def create_interactive_play(
 
         # Render pocket, if any.
         pocket = (
-            pocket_per_frame_and_method.get(frame_id, {}).get(area_method)
+            stored_pockets.get(frame_id, {}).get(area_method)
             if area_method
             else None
         )

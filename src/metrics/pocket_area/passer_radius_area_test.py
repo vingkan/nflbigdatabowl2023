@@ -15,6 +15,7 @@ def test_get_passer_radius_area():
     # Closest rusher is 2 units away, so area is: 3.14 * (2^2) ~= 12.5
     assert actual.area == pytest.approx(12.566370)
     assert actual.metadata.radius == 2
+    assert actual.metadata.center == (0, 0)
 
 
 def test_get_passer_radius_area_no_rushers():
