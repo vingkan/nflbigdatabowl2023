@@ -40,11 +40,22 @@ def get_distance(a: Dict, b: Dict) -> float:
     ax, ay = a.get("x"), a.get("y")
     bx, by = b.get("x"), b.get("y")
     if ax is None or ay is None or bx is None or by is None:
-        raise ValueError(("Coordinates must not be null."))
+        raise ValueError("Coordinates must not be null.")
 
     dx = abs(bx - ax)
     dy = abs(by - ay)
     return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
+
+
+def get_location(a: Dict) -> List[float]:
+    """
+    this function will return the location of the player (a) on the field
+    """
+    ax, ay = a.get("x"), a.get("y")
+    if ax is None or ay is None:
+        raise ValueError("Coordinates must not be null.")
+
+    return [ax, ay]
 
 
 def convert_pff_role_to_pocket_role(raw: str) -> str:
