@@ -1,0 +1,2 @@
+export JUPYTER_PLATFORM_DIRS=1
+alias run='./run.sh'
