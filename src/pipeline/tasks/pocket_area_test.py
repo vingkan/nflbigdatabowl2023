@@ -4,7 +4,6 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 import pytest
-from prefect.testing.utilities import prefect_test_harness
 
 from src.metrics.pocket_area.base import PocketArea, PocketAreaMetadata
 from src.pipeline.tasks.pocket_area import (
