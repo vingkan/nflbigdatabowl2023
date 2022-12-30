@@ -1,31 +1,39 @@
 import math
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import dacite
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.axes import Axes
 from matplotlib.patches import Circle, Patch, Polygon
 from matplotlib.ticker import MultipleLocator
 
 from src.metrics.pocket_area.base import InvalidPocketError, PocketArea
 from src.visualization.pocket_area import (
+    POCKET_KWARGS,
     PocketAreaNestedMap,
     get_pocket_area_nested_map,
     get_pocket_patch,
 )
 
 PLOT_RATIO = 0.4
-PIXEL_RATIO = 100
+FIG_X_RATIO = 1.15
+PIXEL_RATIO = 80
 
 PLAYER_DIAMETER = 1
 FONT_SIZE = 10 * PLAYER_DIAMETER
 PLAYER_RADIUS = 0.5 * PLAYER_DIAMETER
 FOOTBALL_RADIUS = 0.5 * PLAYER_RADIUS
 
-Y_OFFSET = 0.175 * PLAYER_DIAMETER
+Y_OFFSET_JERSEY = 0.175 * PLAYER_DIAMETER
 X_OFFSET_DOUBLE_JERSEY_NUMBER = 0.375 * PLAYER_DIAMETER
 X_OFFSET_SINGLE_JERSEY_NUMBER = 0.2 * PLAYER_DIAMETER
+
+Y_MAX_AREA_RATIO = 1.1
+
+X_OFFSET_EVENT = 0.5
+Y_OFFSET_FACTOR_EVENT = 0.075
 
 RIGHT_ANGLE_DEGREES = 90
 
@@ -35,6 +43,10 @@ MINOR_YARD_LINE = 1
 FOOTBALL_ROLE = "Football"
 RELEVANT_ROLES = "('Pass', 'Pass Block', 'Pass Rush', 'Football')"
 
+GRID_LINE_KWARGS = dict(color="lightgray", linestyle="--", linewidth=1)
+EVENT_LINE_KWARGS = dict(color="#eb6734", linestyle="--", linewidth=1)
+FRAME_LINE_KWARGS = dict(color="#02bda4", linestyle="--", linewidth=1)
+
 ROLE_TO_COLOR = {
     "Football": "#4a3600",
     "Pass": "#02bda4",
@@ -43,9 +55,64 @@ ROLE_TO_COLOR = {
 }
 
 
-def create_interactive_play(
+def plot_pocket_area_timeline(
+    ax: Axes,
+    frame_id: int,
+    df_play_areas: pd.DataFrame,
+    df_events: pd.DataFrame,
+):
+    # Get data to plot.
+    ser_frame = df_play_areas["frameId"]
+    ser_area = df_play_areas["area"]
+    max_frame = ser_frame.max()
+    max_area = ser_area.max()
+    plot_y_max = Y_MAX_AREA_RATIO * max_area
+
+    # Configure axes for timeline plot.
+    ax.set_xlabel("Frame")
+    ax.set_ylabel("Pocket Area")
+    ax.set_xlim(1, max_frame)
+    ax.set_ylim(0, plot_y_max)
+    ax.grid(axis="y", **GRID_LINE_KWARGS)
+
+    # Plot pocket area over time.
+    ax.fill_between(ser_frame, ser_area, **POCKET_KWARGS)
+
+    # Plot play events.
+    for i, row in df_events.iterrows():
+        event_frame_id = row["frameId"]
+        event = row["event"]
+        x = event_frame_id
+        y = plot_y_max
+        x_offset = X_OFFSET_EVENT
+        y_offset = Y_OFFSET_FACTOR_EVENT * plot_y_max * (i + 2)
+        ax.axvline(x=x, ymin=0, ymax=plot_y_max, **EVENT_LINE_KWARGS)
+        ax.text(
+            x + x_offset,
+            y - y_offset,
+            event,
+            fontsize=FONT_SIZE,
+            color=EVENT_LINE_KWARGS.get("color"),
+        )
+
+    # Plot a vertical line at the current frame.
+    x = frame_id
+    y = plot_y_max
+    x_offset = X_OFFSET_EVENT
+    y_offset = Y_OFFSET_FACTOR_EVENT * plot_y_max
+    ax.axvline(x=x, ymin=0, ymax=plot_y_max, **FRAME_LINE_KWARGS)
+    ax.text(
+        x + x_offset,
+        y - y_offset,
+        "Current Frame",
+        fontsize=FONT_SIZE,
+        color=FRAME_LINE_KWARGS.get("color"),
+    )
+
+
+def create_interactive_pocket_area(
     df_tracking_display: pd.DataFrame,
-    df_areas: Optional[pd.DataFrame] = None,
+    df_areas: pd.DataFrame,
     continuous_update: bool = False,
 ):
     """
@@ -56,9 +123,9 @@ def create_interactive_play(
     be run once before activating the interactive plot.
 
     Parameters:
-        df_tracking_display: DataFrame transformed to contain all the
-            columns needed for displaying tracking data, already
-            filtered to only include a single play.
+        df_tracking_display: DataFrame transformed to contain all columns
+            needed for displaying tracking data, already filtered to only
+            include a single play.
         df_areas: Optional DataFrame that includes pocket area data by frame
             and by method, already filtered to only include a single play.
 
@@ -83,6 +150,14 @@ def create_interactive_play(
     # Get frame range.
     max_frames = df_relevant["frameId"].max()
 
+    # Get the events in the play from the tracking data.
+    df_events = (
+        df_tracking_display[["frameId", "event"]]
+        .query("event != 'None'")
+        .drop_duplicates()
+        .reset_index()
+    )
+
     # Store objects for each frame to avoid filtering cost on each redraw.
     objects_per_frame: Dict[int, List[Dict]] = {}
     for obj in df_relevant.to_dict(orient="records"):
@@ -92,19 +167,29 @@ def create_interactive_play(
         objects_per_frame[frame_id].append(obj)
 
     # Parse and store pocket for each frame and method.
-    stored_pockets: PocketAreaNestedMap = {}
-    if df_areas is not None:
-        stored_pockets = get_pocket_area_nested_map(df_areas)
+    stored_pockets: PocketAreaNestedMap = get_pocket_area_nested_map(df_areas)
 
-    def plot_play_frame(frame_id: int, area_method: Optional[str]):
+    # Store the area timeline data for each method.
+    area_timeline_by_method: Dict[str, pd.DataFrame] = {}
+    pocket_area_methods = list(df_areas["method"].unique())
+    for method in pocket_area_methods:
+        df_method_areas = df_areas.query(f"method == '{method}'")
+        area_timeline_by_method[method] = df_method_areas
+
+    def plot_play_frame(frame_id: int, area_method: str):
         """Inner function to redraw plot for the given frame."""
         # Retrieve only the objects for this frame.
         objects = objects_per_frame.get(frame_id, [])
 
         # Configure figure and axes.
-        fig, ax = plt.subplots(1, 1)
-        fig.set_size_inches(x_dim, y_dim)
+        n_rows = 1
+        n_cols = 2
+        fig, (ax, ax2) = plt.subplots(n_rows, n_cols)
+        x_fig = FIG_X_RATIO * n_cols * x_dim
+        y_fig = n_rows * y_dim
+        fig.set_size_inches(x_fig, y_fig)
 
+        # Configure axes for frame and pocket area plot.
         frame_title = f"Frame {frame_id}"
         ax.set_title(frame_title)
         ax.set_axisbelow(True)
@@ -117,14 +202,15 @@ def create_interactive_play(
         ax.xaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
         ax.yaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
 
-        ax.grid(which="both", color="lightgray", linestyle="-", linewidth=1)
+        ax.grid(which="both", **GRID_LINE_KWARGS)
+
+        # Plot the pocket area over time for the play, if available.
+        df_play_areas = area_timeline_by_method.get(area_method)
+        if df_play_areas is not None:
+            plot_pocket_area_timeline(ax2, frame_id, df_play_areas, df_events)
 
         # Render pocket, if any.
-        pocket = (
-            stored_pockets.get(frame_id, {}).get(area_method)
-            if area_method
-            else None
-        )
+        pocket = stored_pockets.get(frame_id, {}).get(area_method)
         if pocket:
             # Add pocket area to title.
             area_title = f"Pocket Area = {pocket.area:.1f} sq yds"
@@ -168,7 +254,7 @@ def create_interactive_play(
             ax.add_patch(circle)
 
             # Render player jersey number.
-            y_offset = Y_OFFSET
+            y_offset = Y_OFFSET_JERSEY
             x_offset = X_OFFSET_SINGLE_JERSEY_NUMBER
             if len(str(p["jerseyNumber"])) > 1:
                 x_offset = X_OFFSET_DOUBLE_JERSEY_NUMBER
@@ -194,15 +280,12 @@ def create_interactive_play(
     )
 
     # Attach an interactive dropdown to choose the pocket area algorithm.
-    dropdown = widgets.fixed(None)
-    if df_areas is not None:
-        pocket_area_methods = df_areas["method"].unique()
-        dropdown = widgets.Dropdown(
-            options=pocket_area_methods,
-            value=pocket_area_methods[0],
-            description="Area Type",
-            layout=layout,
-            disabled=False,
-        )
+    dropdown = widgets.Dropdown(
+        options=pocket_area_methods,
+        value=pocket_area_methods[0],
+        description="Area Type",
+        layout=layout,
+        disabled=False,
+    )
 
     _ = widgets.interact(plot_play_frame, frame_id=slider, area_method=dropdown)

@@ -17,6 +17,7 @@ def transform_to_tracking_display(
     tracking_required_columns = TRACKING_PRIMARY_KEY + [
         "jerseyNumber",
         "team",
+        "event",
         "x",
         "y",
         "o",
