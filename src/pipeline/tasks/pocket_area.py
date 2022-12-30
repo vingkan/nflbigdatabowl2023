@@ -16,16 +16,17 @@ def calculate_pocket_safely(
     calculation function raises an exception. Returns the pocket area and any
     metadata as a dictionary.
     """
+    function_name = f"{calculate_fn.__name__}()"
 
     def calculate(records: List[Dict]) -> Dict:
         # If pocket area calculation fails, return a pocket with null area.
         try:
             pocket_area = calculate_fn(records)
-        except Exception:
+        except Exception as ex:
+            print(f"Exception in {function_name}: {ex}")
             pocket_area = PocketArea(area=np.nan)
 
         if not isinstance(pocket_area, PocketArea):
-            function_name = f"{calculate_fn.__name__}()"
             actual_type = type(pocket_area).__name__
             message = f"Function {function_name} returned {actual_type} instead of PocketArea."
             raise TypeError(message)

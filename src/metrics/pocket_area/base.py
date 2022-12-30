@@ -2,11 +2,15 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Dict, List, Optional, Tuple
 
+# Type hint for (x, y) coordinates.
+Point = Tuple[float, float]
+
 
 @dataclass
 class PocketAreaMetadata:
-    vertices: Optional[List[Tuple[float, float]]] = None
+    vertices: Optional[List[Point]] = None
     radius: Optional[float] = None
+    center: Optional[Point] = None
 
 
 @dataclass

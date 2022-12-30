@@ -22,7 +22,7 @@ tasks:
       gp sync-await install-project
       ./run.sh install-background
     command: |
-      source .bash_aliases
+      source .bash_helpers
       source .venv/bin/activate
       pre-commit install --install-hooks
   - name: Jupyter
@@ -30,12 +30,12 @@ tasks:
       gp sync-await install-project
       ./run.sh jupyter
     command: |
-      source .bash_aliases
+      source .bash_helpers
       source .venv/bin/activate
   - name: Main
     init: |
       ./run.sh install-project
       gp sync-done install-project
     command: |
-      source .bash_aliases
+      source .bash_helpers
       source .venv/bin/activate
