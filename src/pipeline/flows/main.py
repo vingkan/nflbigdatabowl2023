@@ -2,11 +2,13 @@ from prefect import flow, task, unmapped
 
 from src.metrics.pocket_area.all import POCKET_AREA_METHODS
 from src.pipeline.tasks import (
+    align_tracking_data,
     calculate_pocket_area,
     clean_event_data,
     limit_by_child_keys,
     limit_by_keys,
     read_csv,
+    rotate_tracking_data,
     transform_to_frames,
     transform_to_records_per_frame,
     transform_to_tracking_display,
@@ -34,14 +36,16 @@ def main_flow(**kwargs):
     df_tracking_games = limit_by_keys(
         df_tracking_all, keys=["gameId"], n=max_games
     )
-    df_tracking = limit_by_child_keys(
+    df_tracking_limited = limit_by_child_keys(
         df_tracking_games,
         parent_keys=["gameId"],
         child_keys=["playId"],
         n=max_plays,
     )
 
-    # TODO(vinesh): Align, rotate, and orient tracking data.
+    # Align and rotate tracking data.
+    df_tracking_aligned = align_tracking_data(df_tracking_limited)
+    df_tracking = rotate_tracking_data(df_tracking_aligned)
 
     # Clean event data.
     df_events = clean_event_data(df_tracking)
