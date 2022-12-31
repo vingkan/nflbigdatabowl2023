@@ -3,6 +3,7 @@ from prefect import flow, task, unmapped
 from src.metrics.pocket_area.all import POCKET_AREA_METHODS
 from src.pipeline.tasks import (
     calculate_pocket_area,
+    clean_event_data,
     limit_by_child_keys,
     limit_by_keys,
     read_csv,
@@ -42,6 +43,9 @@ def main_flow(**kwargs):
 
     # TODO(vinesh): Align, rotate, and orient tracking data.
 
+    # Clean event data.
+    df_events = clean_event_data(df_tracking)
+
     # Transform tracking data to display format.
     df_tracking_display = task(transform_to_tracking_display)(
         df_tracking, df_plays, df_pff
@@ -62,6 +66,7 @@ def main_flow(**kwargs):
     task(write_csv)(
         df_tracking_display, f"{DATA_DIR}/outputs/tracking_display.csv"
     )
+    task(write_csv)(df_events, f"{DATA_DIR}/outputs/events.csv")
     task(write_csv)(df_frames, f"{DATA_DIR}/outputs/frames.csv")
     task(write_csv)(df_frame_records, f"{DATA_DIR}/outputs/frame_records.csv")
     task(write_csv)(df_areas, f"{DATA_DIR}/outputs/pocket_areas.csv")
