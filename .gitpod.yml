@@ -18,24 +18,21 @@ ports:
     visibility: public
 tasks:
   - name: Background
-    init: |
-      gp sync-await install-project
-      ./run.sh install-background
     command: |
+      gp sync-await install-project
       source .bash_helpers
       source .venv/bin/activate
+      ./run.sh install-background
       pre-commit install --install-hooks
   - name: Jupyter
-    init: |
-      gp sync-await install-project
-      ./run.sh jupyter
     command: |
+      gp sync-await install-project
       source .bash_helpers
       source .venv/bin/activate
+      ./run.sh jupyter
   - name: Main
-    init: |
+    command: |
       ./run.sh install-project
       gp sync-done install-project
-    command: |
       source .bash_helpers
       source .venv/bin/activate
