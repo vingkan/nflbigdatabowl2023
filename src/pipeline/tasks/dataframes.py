@@ -25,7 +25,7 @@ def union_dataframes(df_list: List[pd.DataFrame]) -> pd.DataFrame:
 
 
 def limit_by_keys(
-    df: pd.DataFrame, keys: List[str], n=Optional[float]
+    df: pd.DataFrame, keys: List[str], n=Optional[int]
 ) -> pd.DataFrame:
     """
     Limits a DataFrame to the rows for the first n combinations of the given
@@ -37,5 +37,36 @@ def limit_by_keys(
 
     df_unique = df[keys].drop_duplicates()
     df_limited = df_unique.sort_values(keys).head(n)
+    # Left join to reduce the original DataFrame to only the limited rows, if
+    # right side contains multiple rows for the given key, the join will explode
+    # resulting in retaining those rows.
     df_output = df_limited.merge(df, on=keys, how="left")
+    return df_output
+
+
+def limit_by_child_keys(
+    df: pd.DataFrame,
+    parent_keys: List[str],
+    child_keys: List[str],
+    n=Optional[int],
+) -> pd.DataFrame:
+    """
+    Limits a DataFrame so that each subgroup of the parent keys only has up to n
+    combinations of the child keys, using the default sort. If no limit is
+    requested, returns the input DataFrame.
+    """
+    if n is None:
+        return df
+
+    full_keys = parent_keys + child_keys
+    df_unique = df[full_keys].drop_duplicates()
+    # Only need to sort on child keys because limit will be taken within each
+    # parent group, so parent keys do not affect the limit.
+    df_sorted = df_unique.sort_values(full_keys)
+    # Take the first n rows in each group.
+    df_limited = df_sorted.groupby(parent_keys).head(n).reset_index(drop=True)
+    # Left join to reduce the original DataFrame to only the limited rows, if
+    # right side contains multiple rows for the given parent and child key, the
+    # join will explode resulting in retaining those rows.
+    df_output = df_limited.merge(df, on=full_keys, how="left")
     return df_output
