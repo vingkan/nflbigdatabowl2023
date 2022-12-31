@@ -1,5 +1,8 @@
+from typing import Dict, Optional
+
 import ipywidgets as widgets
 import pandas as pd
+from IPython.display import HTML, display
 
 from src.visualization.interactive_pocket_area import (
     create_interactive_pocket_area,
@@ -31,12 +34,18 @@ def create_interactive_play_selector(
         """Update visualization for the given play."""
         # Filter datasets to the given play.
         query = f"gameId == {game_id} and playId == {play_id}"
-        df_play = df_plays_all.query(query).iloc[0]
+        df_play_results = df_plays_all.query(query)
+        if len(df_play_results) == 0:
+            display(HTML("<p>No results.</p>"))
+            return
+
+        df_play = df_play_results.iloc[0]
         df_tracking_display = df_tracking_display_all.query(query)
         df_areas = df_areas_all.query(query)
 
         # Display the play description and another interactive plot.
-        print(df_play["playDescription"])
+        play_description = df_play["playDescription"]
+        display(HTML(f"<p>{play_description}</p>"))
         create_interactive_pocket_area(df_tracking_display, df_areas, **kwargs)
 
     # Create play ID dropdown, which depends on the selected game ID.
@@ -48,17 +57,23 @@ def create_interactive_play_selector(
         options=[], value=None, description="Play ID"
     )
 
-    def update_play_options():
+    def update_play_options(change: Optional[Dict] = None):
         """When the game dropdown changes, update the play dropdown."""
-        game_id = game_dropdown.value
-        play_options = df_tracking_display_all.query(f"gameId == {game_id}")[
-            "playId"
-        ].unique()
+        if change is None:
+            return
+
+        game_id = change.get("new")
+        if game_id is None:
+            return
+
+        game_query = f"gameId == {game_id}"
+        df_game_only = df_tracking_display_all.query(game_query)
+        play_options = df_game_only["playId"].unique()
         play_dropdown.options = play_options
         play_dropdown.value = play_options[0]
 
-    game_dropdown.observe(update_play_options)
-    update_play_options()
+    game_dropdown.observe(update_play_options, names="value")
+    update_play_options({"new": game_dropdown.value})
 
     _ = widgets.interact(
         select_play, game_id=game_dropdown, play_id=play_dropdown

@@ -39,6 +39,7 @@ RIGHT_ANGLE_DEGREES = 90
 
 MAJOR_YARD_LINE = 5
 MINOR_YARD_LINE = 1
+MARGIN_YARD_LINES = 2
 
 FOOTBALL_ROLE = "Football"
 RELEVANT_ROLES = "('Pass', 'Pass Block', 'Pass Rush', 'Football')"
@@ -135,20 +136,24 @@ def create_interactive_pocket_area(
     """
 
     # Filter to relevant roles
-    df_relevant = df_tracking_display.query(f"pff_role in {RELEVANT_ROLES}")
+    df_pocket_only = df_tracking_display.query(f"pff_role in {RELEVANT_ROLES}")
 
-    # Get bounding box for entire play.
-    x = df_relevant["x"]
-    y = df_relevant["y"]
-    x_min = x.min()
-    x_max = x.max()
-    y_min = y.min()
-    y_max = y.max()
+    # Get bounding box only for the players involved in the pocket.
+    x = df_pocket_only["x"]
+    y = df_pocket_only["y"]
+    x_min = x.min() - MARGIN_YARD_LINES
+    x_max = x.max() + MARGIN_YARD_LINES
+    y_min = y.min() - MARGIN_YARD_LINES
+    y_max = y.max() + MARGIN_YARD_LINES
     x_dim = PLOT_RATIO * (x_max - x_min)
     y_dim = PLOT_RATIO * (y_max - y_min)
 
+    # Get tracking data for players viewable within the pocket bounding box.
+    viewable_query = f"({x_min} <= x <= {x_max}) and ({y_min} <= y <= {y_max})"
+    df_viewable = df_tracking_display.query(viewable_query)
+
     # Get frame range.
-    max_frames = df_relevant["frameId"].max()
+    max_frames = df_tracking_display["frameId"].max()
 
     # Get the events in the play from the tracking data.
     df_events = (
@@ -160,7 +165,7 @@ def create_interactive_pocket_area(
 
     # Store objects for each frame to avoid filtering cost on each redraw.
     objects_per_frame: Dict[int, List[Dict]] = {}
-    for obj in df_relevant.to_dict(orient="records"):
+    for obj in df_viewable.to_dict(orient="records"):
         frame_id = obj["frameId"]
         if frame_id not in objects_per_frame:
             objects_per_frame[frame_id] = []
@@ -194,8 +199,8 @@ def create_interactive_pocket_area(
         ax.set_title(frame_title)
         ax.set_axisbelow(True)
 
-        ax.set_xlim(x_min - MINOR_YARD_LINE, x_max + MINOR_YARD_LINE)
-        ax.set_ylim(y_min - MINOR_YARD_LINE, y_max + MINOR_YARD_LINE)
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
 
         ax.xaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
         ax.yaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
