@@ -11,7 +11,7 @@ from src.metrics.pocket_area.base import InvalidPocketError, PocketArea
 
 POCKET_KWARGS = dict(
     color="#b0e3ff",
-    alpha=0.35,
+    alpha=0.5,
 )
 
 PocketAreaNestedMap = Dict[int, Dict[str, PocketArea]]

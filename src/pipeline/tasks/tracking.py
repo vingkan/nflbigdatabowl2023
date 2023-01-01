@@ -130,6 +130,7 @@ def transform_to_tracking_display(
         "jerseyNumber",
         "team",
         "event",
+        "eligible_for_pocket",
         "x",
         "y",
         "o",

@@ -85,3 +85,18 @@ def clean_event_data(df_tracking: pd.DataFrame) -> pd.DataFrame:
     drop_columns = ["first_frame", "is_first_event_of_type", "clean_event"]
     df_with_first.drop(columns=drop_columns, inplace=True)
     return df_with_first
+
+
+def augment_tracking_events(
+    df_tracking: pd.DataFrame, df_events: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Copies the tracking DataFrame and replaces the `event` column with the
+    cleaned event for that frame.
+    Also any additional columns from event data, such as `eligible_for_pocket`.
+
+    """
+    # Returns a copy of the DataFrame without the old event column.
+    df_base = df_tracking.drop(columns=["event"])
+    df_with_event = df_base.merge(df_events, on=["gameId", "playId", "frameId"])
+    return df_with_event
