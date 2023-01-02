@@ -24,8 +24,8 @@ def calculate_average_pocket_area_loss_per_second(
         - playId (PK)
         - method (PK)
         - window_type (PK)
-        - pocket_area_start
-        - pocket_area_end
+        - area_start
+        - area_end
         - time_start
         - time_end
 
@@ -79,8 +79,8 @@ def get_play_pocket_metrics(df_area: pd.DataFrame) -> pd.DataFrame:
         - playId (PK)
         - method (PK)
         - window_type (PK)
-        - pocket_area_start
-        - pocket_area_end
+        - area_start
+        - area_end
         - time_start
         - time_end
     """
@@ -139,4 +139,6 @@ def get_play_pocket_metrics(df_area: pd.DataFrame) -> pd.DataFrame:
     df_with_both["time_end"] = (
         df_with_both["max"].astype(float) / frames_per_second
     )
+    drop_cols = ["min", "max"]
+    df_with_both.drop(columns=drop_cols, inplace=True)
     return df_with_both
