@@ -21,7 +21,7 @@ def write_csv(df: pd.DataFrame, outfile: str):
 
 def union_dataframes(df_list: List[pd.DataFrame]) -> pd.DataFrame:
     """Unions a list of DataFrames, assuming they have the same columns."""
-    return pd.concat(df_list)
+    return pd.concat(df_list, ignore_index=True, copy=False)
 
 
 def limit_by_keys(
