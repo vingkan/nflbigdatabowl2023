@@ -36,7 +36,7 @@ def calculate_average_pocket_area_loss_per_second(
         - playId (PK)
         - method (PK)
         - window_type (PK)
-        - average_pocket_loss_per_second
+        - average_pocket_area_loss_per_second
     """
     df_metric = pd.DataFrame(df_play_pocket_metrics)
     df_metric["average_pocket_area_loss_per_second"] = df_metric.apply(
