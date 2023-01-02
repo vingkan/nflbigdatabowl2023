@@ -23,6 +23,7 @@ def get_frames_for_time_windows(
         - gameId (PK)
         - playId (PK)
         - frameId (PK)
+        - method (PK)
         - pocket
         - area
 
@@ -32,11 +33,11 @@ def get_frames_for_time_windows(
     The input can contain as many types of time window as needed.
     For example:
     - window_type = `x_after_snap`:
-      - Already filtered out frames before the snap.
+        - Already filtered out frames before the snap.
         - Already filtered out any plays that end less than X seconds after snap.
     - window_type = `x_before_pass`:
-      - Already filtered out frames earlier than X seconds before pass.
-      - Already filtered out frames after pass.
+        - Already filtered out frames earlier than X seconds before pass.
+        - Already filtered out frames after pass.
         - Already filtered out any plays where the pass is less than X seconds after the snapp
 
     Returns:
@@ -46,6 +47,7 @@ def get_frames_for_time_windows(
         - frameId (PK)
         - method (PK)
         - window_type (PK)
+        - pocket
         - area
     """
     df = pd.DataFrame(df_events)
