@@ -4,9 +4,12 @@ from src.metrics.pocket_area.all import POCKET_AREA_METHODS
 from src.pipeline.tasks import (
     align_tracking_data,
     augment_tracking_events,
+    calculate_average_pocket_area_loss_per_second,
     calculate_pocket_area,
     clean_event_data,
+    get_frames_for_time_windows,
     get_passer_out_of_pocket,
+    get_play_pocket_metrics,
     get_pocket_eligibility,
     limit_by_child_keys,
     limit_by_keys,
@@ -32,6 +35,9 @@ def main_flow(**kwargs):
     # How far the passer can go along the field width from the ball snap to be
     # considered in the officiating pocket area.
     max_yards_from_snap = 7
+    # How many frames to include in the time windows (e.g. x_after_snap,
+    # x_before_pass). For example, 20 frames leads to 2 second windows.
+    window_size_frames = 20
 
     # Read raw data.
     df_pff = task(read_csv)(f"{DATA_DIR}/raw/pffScoutingData.csv")
@@ -82,6 +88,15 @@ def main_flow(**kwargs):
     )
     df_areas = task(union_dataframes)(df_area_list)
 
+    # Calculate metrics for each play.
+    df_windows_with_area = task(get_frames_for_time_windows)(
+        df_events, df_areas, window_size_frames=window_size_frames
+    )
+    df_play_pocket_metrics = task(get_play_pocket_metrics)(df_windows_with_area)
+    df_play_metrics = task(calculate_average_pocket_area_loss_per_second)(
+        df_play_pocket_metrics
+    )
+
     # Write outputs to disk.
     task(write_csv)(
         df_tracking_display, f"{DATA_DIR}/outputs/tracking_display.csv"
@@ -90,3 +105,4 @@ def main_flow(**kwargs):
     task(write_csv)(df_frames, f"{DATA_DIR}/outputs/frames.csv")
     task(write_csv)(df_frame_records, f"{DATA_DIR}/outputs/frame_records.csv")
     task(write_csv)(df_areas, f"{DATA_DIR}/outputs/pocket_areas.csv")
+    task(write_csv)(df_play_metrics, f"{DATA_DIR}/outputs/play_metrics.csv")

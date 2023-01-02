@@ -164,6 +164,10 @@ def get_pocket_eligibility(
     )
 
     # Determine pocket eligibility.
+    # TODO(vinesh): Make the frame_start and frame_end columns based on pocket
+    # eligibility, not just pocket ending events.
+    # TODO(vinesh): Handle edge cases where pocket can be re-established, such
+    # as a botched snap followed by pass from pocket.
     df["eligible_for_pocket"] = df.apply(is_eligible_for_pocket, axis=1)
     if not keep_intermediate_columns:
         drop_columns = ["frame_start", "frame_end", "passer_out_of_pocket"]
