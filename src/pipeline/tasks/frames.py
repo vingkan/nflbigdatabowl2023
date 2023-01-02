@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 import pandas as pd
 
 from src.metrics.pocket_area.base import PocketRole
@@ -11,11 +9,6 @@ from src.pipeline.tasks.constants import (
 )
 
 FRAME_COLUMNS = ["x", "y", "role"]
-
-
-def get_records_for_frame(df_group: pd.DataFrame) -> List[Dict]:
-    """Converts the frame tracking records into a list of dictionaries."""
-    return df_group[FRAME_COLUMNS].to_dict(orient="records")
 
 
 def transform_to_frames(
@@ -44,6 +37,16 @@ def transform_to_frames(
 
 def transform_to_records_per_frame(df_frames: pd.DataFrame) -> pd.DataFrame:
     """Aggregates the data for each frame into one row per frame."""
-    df_grouped = df_frames.groupby(FRAME_PRIMARY_KEY)
-    df_frame_records = df_grouped.apply(get_records_for_frame)
-    return df_frame_records.reset_index().rename(columns={0: "records"})
+    # Copy input.
+    df = pd.DataFrame(df_frames)
+    # Zip columns needed for each object into a new column.
+    # If you want to expose a new column to the pocket area functions, you must
+    # add it here.
+    df["object"] = [
+        {"x": x, "y": y, "role": role}
+        for x, y, role in zip(df["x"], df["y"], df["role"])
+    ]
+    # Aggregate objects into a list for each frame.
+    df_grouped = df.groupby(FRAME_PRIMARY_KEY)
+    df_out = df_grouped.agg(records=("object", list)).reset_index()
+    return df_out
