@@ -9,4 +9,5 @@ from src.metrics.pocket_area.pocket_pb_ch_area import (
 POCKET_AREA_METHODS: Dict[str, PocketAreaFunction] = {
     "passer_radius": get_passer_radius_area,
     "blocker_convex_hull": get_passBlocker_convexHull_area,
+    "rushers_pocket_area": rushers_pocket_area
 }
