@@ -4,20 +4,19 @@ from scipy.spatial import Voronoi
 from shapely import Polygon
 
 from src.metrics.pocket_area.base import PocketArea, PocketAreaMetadata
+from src.metrics.pocket_area.helpers import split_records_by_role
 
 
 def voronoi_pocket_area(players: List[Dict]) -> PocketArea:
 
-    passer_idx = -1
-    passer_coord = (-1, -1)
-    for i, p in enumerate(players):
-        if p["role"] == "passer":
-            passer_idx = i
-            passer_coord = (p["x"], p["y"])
-            break
+    passer, blockers, rushers = split_records_by_role(players)
+    pocket_players = [passer] + blockers + rushers
+    passer_idx = 0
 
-    points = [(p["x"], p["y"]) for p in players]
-    ghost = (passer_coord[0], passer_coord[1] - 2)
+    points = [(p["x"], p["y"]) for p in pocket_players]
+    # add fake point that is always 2 yards behing the passer to
+    # limit the backside of the pocket
+    ghost = (passer["x"], passer["y"] - 2)
     points.append(ghost)
 
     vor = Voronoi(points)
