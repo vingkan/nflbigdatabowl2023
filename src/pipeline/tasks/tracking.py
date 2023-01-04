@@ -1,13 +1,12 @@
 import pandas as pd
 
 from src.pipeline.tasks.constants import (
+    FIELD_LENGTH,
+    FIELD_WIDTH,
     PFF_PRIMARY_KEY,
     PLAY_PRIMARY_KEY,
     TRACKING_PRIMARY_KEY,
 )
-
-FIELD_LENGTH = 120
-FIELD_WIDTH = 53 + (1.0 / 3.0)
 
 MAX_DEGREES = 360
 
