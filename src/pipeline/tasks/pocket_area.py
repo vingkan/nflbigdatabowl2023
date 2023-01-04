@@ -32,7 +32,12 @@ def calculate_pocket_safely(
             raise TypeError(message)
 
         # Convert the pocket area dataclass to a dictionary.
-        return dataclasses.asdict(pocket_area)
+        # The dataclass does not allow a None for area, but we cannot parse a
+        # np.nan from a string, so if the area is np.nan, set it to None.
+        pocket_dict = dataclasses.asdict(pocket_area)
+        if np.isnan(pocket_dict["area"]):
+            pocket_dict["area"] = None
+        return pocket_dict
 
     return calculate
 

@@ -3,6 +3,7 @@ from typing import Dict, Optional
 import dacite
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from matplotlib.patches import Circle, Patch, Polygon
 from matplotlib.ticker import MultipleLocator
@@ -26,6 +27,10 @@ def get_pocket_area_nested_map(df_areas: pd.DataFrame) -> PocketAreaNestedMap:
         pocket_dict = row["pocket"]
 
         # Parse pocket area dataclass.
+        # The dataclass does not allow a None for area, but we cannot parse a
+        # np.nan from a string, so if the area is None, set it to np.nan.
+        if pocket_dict["area"] is None:
+            pocket_dict["area"] = np.nan
         pocket = dacite.from_dict(PocketArea, pocket_dict)
 
         # Update nested map.
