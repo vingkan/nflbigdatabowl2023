@@ -3,8 +3,6 @@ from typing import List, Optional
 
 import pandas as pd
 
-from src.pipeline.tasks.constants import TRACKING_COLUMNS_TO_INGEST
-
 
 def read_csv(infile: str) -> pd.DataFrame:
     """Reads a DataFrame from a CSV file path."""
@@ -98,8 +96,6 @@ def read_tracking_data(inpath: str, weeks: int) -> pd.DataFrame:
             iterator=True,
             # This defines the largest chunk Pandas will try to read at a time.
             chunksize=10**5,
-            # Only read these columns, also helps preserve memory during reads.
-            usecols=TRACKING_COLUMNS_TO_INGEST,
         )
         for week in week_range
     ]
