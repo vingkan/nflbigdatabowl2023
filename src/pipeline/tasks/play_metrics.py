@@ -106,12 +106,13 @@ def get_play_pocket_metrics(df_area: pd.DataFrame) -> pd.DataFrame:
     # Join in the start pocket area for each play.
     # Note: The join should explode if there are multiple `method` rows, so that we get each of them.
     # Note: The join columns have different names on each side.
+    start_cols = play_keys + ["frameId", "min", "max", "area_start"]
     df_with_start = df_time_window.merge(
         df,
         left_on=(play_keys + ["min"]),
         right_on=(play_keys + ["frameId"]),
         how="left",
-    ).rename(columns={"area": "area_start"})
+    ).rename(columns={"area": "area_start"})[start_cols]
     # Join in the end pocket area for each play.
     df_with_both = (
         df_with_start.merge(
