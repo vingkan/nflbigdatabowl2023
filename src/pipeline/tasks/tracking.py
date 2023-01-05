@@ -82,6 +82,7 @@ def transform_to_tracking_display(
     needed to display in visualiations.
     """
     tracking_required_columns = TRACKING_PRIMARY_KEY + [
+        "week",
         "jerseyNumber",
         "team",
         "event",
