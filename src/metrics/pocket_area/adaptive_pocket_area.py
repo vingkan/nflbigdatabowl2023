@@ -44,6 +44,7 @@ def find_closest_player_s(
     closest_players: List[Dict] = []
     closest_distance = float("inf")
 
+    # Find the closest rusher's distance
     for player in players:
         d = get_distance(point, player)
         if d <= (
@@ -51,6 +52,7 @@ def find_closest_player_s(
         ) or closest_distance == float("inf"):
             closest_distance = d
 
+    # Determine whether each rusher is within the rusher difference error
     for player in players:
         d = get_distance(point, player)
         if d <= (closest_distance + rusher_difference):
@@ -68,11 +70,21 @@ def calculate_adaptive_pocket_area(frame: pd.DataFrame) -> PocketArea:
     if not passer:
         raise InvalidPocketError("No passer in frame.")
 
+    # Consider all pass rushers and the passer
     pocket_players = rushers + [passer]
-    closest_rushers = find_closest_player_s(passer, rushers, 0.0)
+    # use helper function in this file to get all the rushers that have a distance 3 yards
+    # within the distance from the closest rusher to the quarterback
+    closest_rushers = find_closest_player_s(passer, rushers, 3.0)
+
+    # adjusted pocket will get all the pass rushers that make a valid pocket along with the qb
     adjusted_pocket = closest_rushers[0] + [passer]
+
+    # If there is 2 or more valid pass rushers, get the corvex hull of the rushers and qb
     if len(closest_rushers[0]) >= 2:
         return rushers_pocket_area(adjusted_pocket)
+    # If there is one valid rusher, make the radius the distance from the rusher to qb,
+    # restrict the area of the pocket two 1/3rd of a circle in front of the qb, make the metadata.edge
+    # variable the location of the nearest pass rusher
     else:
         pocket_area = get_passer_radius_area(adjusted_pocket)
         ex, ey = closest_rushers[0][0].get("x"), closest_rushers[0][0].get("y")
