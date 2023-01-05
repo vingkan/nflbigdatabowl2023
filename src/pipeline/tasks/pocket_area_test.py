@@ -77,7 +77,7 @@ def test_calculate_pocket_safely_with_exception():
     df = pd.DataFrame()
     actual = actual_fn(df)
     expected = {
-        "area": np.nan,
+        "area": None,
         "metadata": {"vertices": None, "radius": None, "center": None},
     }
     assert actual == expected
