@@ -14,6 +14,7 @@ from src.pipeline.tasks import (
     limit_by_child_keys,
     limit_by_keys,
     read_csv,
+    read_tracking_data,
     rotate_tracking_data,
     transform_to_frames,
     transform_to_records_per_frame,
@@ -28,6 +29,8 @@ DATA_DIR = "/workspace/nflbigdatabowl2023/data"
 @flow
 def main_flow(**kwargs):
     # Get flow parameters.
+    # Maximum number of weeks to process. If None, process all.
+    max_weeks = kwargs.get("max_weeks") or 8
     # Maximum number of games to process. If None, process all.
     max_games = kwargs.get("max_games")
     # Maximum number of plays per game to process. If None, process all.
@@ -42,11 +45,16 @@ def main_flow(**kwargs):
     # Read raw data.
     df_pff = task(read_csv)(f"{DATA_DIR}/raw/pffScoutingData.csv")
     df_plays = task(read_csv)(f"{DATA_DIR}/raw/plays.csv")
-    df_tracking_all = task(read_csv)(f"{DATA_DIR}/raw/week1.csv")
+    df_tracking_all = task(read_tracking_data)(
+        f"{DATA_DIR}/raw/week", weeks=max_weeks
+    )
 
-    # Limit to max games and plays per game, if requested.
-    df_tracking_games = task(limit_by_keys)(
-        df_tracking_all, keys=["gameId"], n=max_games
+    # Limit to max weeks, games, and plays per game, if requested.
+    df_tracking_games = task(limit_by_child_keys)(
+        df_tracking_all,
+        parent_keys=["week"],
+        child_keys=["gameId"],
+        n=max_games,
     )
     df_tracking_limited = task(limit_by_child_keys)(
         df_tracking_games,
