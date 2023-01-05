@@ -33,7 +33,7 @@ Adaptive Corvex Hull Pseudocode:
 def find_closest_player_s(
     point: Dict, players: List[Dict], rusher_difference: float
 ):
-    """Returns the closest players to the given point and the distance.
+    """Returns the closest players to the given point and the distance
 
     rusher_difference : acceptable difference parameter from the closest rusher
     and any other rushers that should be considered to make the pocket
