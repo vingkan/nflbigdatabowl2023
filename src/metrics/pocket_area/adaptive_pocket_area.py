@@ -101,8 +101,5 @@ def calculate_adaptive_pocket_area(frame: pd.DataFrame) -> PocketArea:
     # variable the location of the nearest pass rusher
     else:
         pocket_area = get_passer_radius_area(adjusted_pocket)
-        ex, ey = closest_rushers[0][0].get("x"), closest_rushers[0][0].get("y")
-        metadata = PocketAreaMetadata(
-            radius=pocket_area.metadata.radius, edge=(ex, ey)
-        )
-        return PocketArea(pocket_area.area / 3, metadata)
+        # ex, ey = closest_rushers[0][0].get("x"), closest_rushers[0][0].get("y")
+        return PocketArea(pocket_area.area / 3, pocket_area.metadata)

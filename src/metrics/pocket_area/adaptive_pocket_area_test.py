@@ -20,7 +20,6 @@ def test_one_rusher_valid_to_make_pocket():
     actual = calculate_adaptive_pocket_area(frame)
 
     assert actual.area == pytest.approx(2.094395102393196)
-    assert actual.metadata.edge == (1, 6)
 
 
 def test_multiple_rushers_valid_to_make_pocket():

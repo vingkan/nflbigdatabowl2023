@@ -11,7 +11,6 @@ class PocketAreaMetadata:
     vertices: Optional[List[Point]] = None
     radius: Optional[float] = None
     center: Optional[Point] = None
-    edge: Optional[Point] = None
 
 
 @dataclass
