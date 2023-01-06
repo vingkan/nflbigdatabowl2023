@@ -12,8 +12,8 @@ FIELD_WIDTH_MAX = FIELD_WIDTH
 
 
 def voronoi_pocket_area(players: List[Dict]) -> PocketArea:
-    passer, blockers, rushers = split_records_by_role(players)
 
+    passer, blockers, rushers = split_records_by_role(players)
     # How much pocket depth can be behind the passer.
     pocket_max_depth_behind_passer = 1
     # How much pocket width can be to either side of the passer.
@@ -25,8 +25,7 @@ def voronoi_pocket_area(players: List[Dict]) -> PocketArea:
         # Limit pocket area behind passer. Double the max depth behind passer
         # so that the pocket boundary will fall at the midpoint.
         (passer["x"], passer["y"] - (2 * pocket_max_depth_behind_passer)),
-        # Limit pocket to line of scrimmage (y = 0).
-        # TODO(vinesh): Reorient tracking data so that y = 0 is L.O.S.
+        # Limit pocket area in front of passer to line of scrimmage (y = 0).
         (passer["x"], 0),
         # Limit pocket area to sides of passer. Double the max side width so
         # that the pocket boundary will fall at the midpoint.
@@ -36,8 +35,8 @@ def voronoi_pocket_area(players: List[Dict]) -> PocketArea:
 
     pocket_players = [passer] + blockers + rushers
     passer_idx = 0
-    points = [(p["x"], p["y"]) for p in pocket_players]
-    all_points = points + ghost_points
+    pocket_points = [(p["x"], p["y"]) for p in pocket_players]
+    all_points = pocket_points + ghost_points
 
     vor = Voronoi(all_points)
     region_idx = vor.point_region[passer_idx]
