@@ -76,7 +76,7 @@ def main_flow(**kwargs):
     # back to tracking data.
     df_clean_events = task(clean_event_data)(df_tracking_limited)
     df_events = task(get_pocket_eligibility)(
-        df_clean_events, df_passer_out_of_pocket, keep_intermediate_columns=True
+        df_clean_events, df_passer_out_of_pocket
     )
     df_tracking = task(augment_tracking_events)(df_tracking_rotated, df_events)
 
