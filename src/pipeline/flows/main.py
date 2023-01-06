@@ -110,7 +110,5 @@ def main_flow(**kwargs):
         df_tracking_display, f"{DATA_DIR}/outputs/tracking_display.csv"
     )
     task(write_csv)(df_events, f"{DATA_DIR}/outputs/events.csv")
-    task(write_csv)(df_frames, f"{DATA_DIR}/outputs/frames.csv")
-    task(write_csv)(df_frame_records, f"{DATA_DIR}/outputs/frame_records.csv")
     task(write_csv)(df_areas, f"{DATA_DIR}/outputs/pocket_areas.csv")
     task(write_csv)(df_play_metrics, f"{DATA_DIR}/outputs/play_metrics.csv")

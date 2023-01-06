@@ -59,6 +59,9 @@ def get_frames_for_time_windows(
         ["gameId", "playId", "frameId"]
     ].rename(columns={"frameId": "pass_frame"})
     df = df.merge(df_pass, how="left", on=["gameId", "playId"])
+    df["pass_frame"] = df["pass_frame"].fillna(-1)
+    df["frame_start"] = df["frame_start"].fillna(-1)
+    df["frame_end"] = df["frame_end"].fillna(-1)
 
     df["frames_elapsed"] = df["frameId"] - df["frame_start"]
     df["window_size"] = window_size_frames
@@ -73,7 +76,9 @@ def get_frames_for_time_windows(
     # Bandit thinks that strings with "pass" are passwords, so we have to tell
     # it that these queries are safe with `nosec`.
     query_x_before_pass = (  # nosec
-        "pass_frame == pass_frame "
+        "frame_start > -1 "
+        "and pass_frame > -1 "
+        "and frame_before_pass > -1 "
         "and frameId <= pass_frame "
         "and frameId >= frame_before_pass "
         "and frame_before_pass >= frame_start "
@@ -82,7 +87,8 @@ def get_frames_for_time_windows(
     df_before_pass["window_type"] = "before_pass"  # nosec
 
     query_x_after_snap = (
-        "frameId >= frame_start "
+        "frame_start > -1 "
+        "and frameId >= frame_start "
         "and frames_elapsed <= window_size "
         "and total_frames >= window_size "
     )
@@ -90,8 +96,9 @@ def get_frames_for_time_windows(
     df_after_snap["window_type"] = "after_snap"
 
     query_x_before_end = (
-        "frame_start == frame_start "
-        "and frame_end == frame_end "
+        "frame_start > -1 "
+        "and frame_end > -1 "
+        "and frame_x_before_end > -1 "
         "and frameId <= frame_end "
         "and frameId >= frame_x_before_end "
         "and frame_x_before_end >= frame_start "
