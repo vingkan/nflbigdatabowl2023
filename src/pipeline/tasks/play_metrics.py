@@ -64,14 +64,6 @@ def get_play_pocket_metrics(df_area: pd.DataFrame) -> pd.DataFrame:
         - area
 
     The input can contain as many types of time window as needed.
-    For example:
-    - window_type = `x_after_snap`:
-      - Already filtered out frames before the snap.
-        - Already filtered out any plays that end less than X seconds after snap.
-    - window_type = `x_before_pass`:
-      - Already filtered out frames earlier than X seconds before pass.
-      - Already filtered out frames after pass.
-        - Already filtered out any plays where the pass is less than X seconds after the snapp
 
     Returns:
     Contains columns:
