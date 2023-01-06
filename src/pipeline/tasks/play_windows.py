@@ -32,13 +32,15 @@ def get_frames_for_time_windows(
 
     The input can contain as many types of time window as needed.
     For example:
-    - window_type = `x_after_snap`:
+    - window_type = `after_snap`:
         - Already filtered out frames before the snap.
         - Already filtered out any plays that end less than X seconds after snap.
-    - window_type = `x_before_pass`:
+    - window_type = `before_pass`:
         - Already filtered out frames earlier than X seconds before pass.
         - Already filtered out frames after pass.
-        - Already filtered out any plays where the pass is less than X seconds after the snapp
+        - Already filtered out any plays where the pass is less than X seconds after the snap
+    - window_type = `before_end`:
+        - Frames between the end of the pocket and X seconds before that.
 
     Returns:
     Contains columns:
@@ -62,6 +64,9 @@ def get_frames_for_time_windows(
     df["window_size"] = window_size_frames
     df["total_frames"] = df["frame_end"] - df["frame_start"]
 
+    # Find the frame that is X frames before the end of the pocket.
+    df["frame_x_before_end"] = df["frame_end"] - window_size_frames
+
     # this is not the frame immediately before the pass, this is the frame factor before the pass frame
     df["frame_before_pass"] = df["pass_frame"] - window_size_frames
 
@@ -84,10 +89,30 @@ def get_frames_for_time_windows(
     df_after_snap = pd.DataFrame(df.query(query_x_after_snap))
     df_after_snap["window_type"] = "after_snap"
 
-    df_windows = pd.concat([df_after_snap, df_before_pass])
+    query_x_before_end = (
+        "frame_start == frame_start "
+        "and frame_end == frame_end "
+        "and frameId <= frame_end "
+        "and frameId >= frame_x_before_end "
+        "and frame_x_before_end >= frame_start "
+    )
+    df_before_end = pd.DataFrame(df.query(query_x_before_end))
+    df_before_end["window_type"] = "before_end"
+
+    df_windows = pd.concat([df_after_snap, df_before_pass, df_before_end])
 
     df_out = df_windows.merge(
         df_areas, on=["gameId", "playId", "frameId"], how="left"
     )
+    drop_cols = [
+        "frames_elapsed",
+        "window_size",
+        "total_frames",
+        "frame_x_before_end",
+        "frame_before_pass",
+        "pass_frame",
+        "event",
+    ]
+    df_out.drop(columns=drop_cols, inplace=True)
 
     return df_out
