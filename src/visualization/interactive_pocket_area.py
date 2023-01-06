@@ -63,7 +63,6 @@ def plot_pocket_area_timeline(
     frame_id: int,
     df_play_areas: pd.DataFrame,
     df_events: pd.DataFrame,
-    ser_eligibility: pd.Series,
 ):
     # Get data to plot.
     ser_frame = df_play_areas["frameId"]
@@ -82,8 +81,8 @@ def plot_pocket_area_timeline(
     # Plot window when the play was eligible for a pocket.
     # Accomplish this by shading out the frames that were ineligible.
     # Assumes the pocket window is continuous from min frame to max frame.
-    eligibility_start = ser_eligibility.min()
-    eligibility_end = ser_eligibility.max()
+    eligibility_start = df_events.iloc[0]["frame_start"]
+    eligibility_end = df_events.iloc[0]["frame_end"]
     ineligibility_start = Rectangle(
         xy=(0, 0),
         width=(eligibility_start),
@@ -180,17 +179,12 @@ def create_interactive_pocket_area(
 
     # Get the events in the play from the tracking data.
     df_events = (
-        df_tracking_display[["frameId", "event"]][
+        df_tracking_display[["frameId", "event", "frame_start", "frame_end"]][
             df_tracking_display["event"].notna()
         ]
         .drop_duplicates()
         .reset_index()
     )
-
-    # Get the frames eligible for having a pocket.
-    ser_eligibility = df_tracking_display[
-        df_tracking_display["eligible_for_pocket"]
-    ]["frameId"]
 
     # Store objects for each frame to avoid filtering cost on each redraw.
     objects_per_frame: Dict[int, List[Dict]] = {}
@@ -241,9 +235,7 @@ def create_interactive_pocket_area(
         # Plot the pocket area over time for the play, if available.
         df_play_areas = area_timeline_by_method.get(area_method)
         if df_play_areas is not None:
-            plot_pocket_area_timeline(
-                ax2, frame_id, df_play_areas, df_events, ser_eligibility
-            )
+            plot_pocket_area_timeline(ax2, frame_id, df_play_areas, df_events)
 
         # Render pocket, if any.
         pocket = stored_pockets.get(frame_id, {}).get(area_method)
