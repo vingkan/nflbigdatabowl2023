@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from src.pipeline.tasks.play_metrics import (
     calculate_average_pocket_area_loss_per_second,
@@ -66,19 +67,22 @@ def test_get_play_pocket_metrics():
         "area_end",
         "time_start",
         "time_end",
+        "median_area",
+        "average_area",
     ]
     output_row = row_creator(output_columns)
 
     # Compare to expected rows.
+    a_20_6 = pytest.approx(20.666666)
     expected = [
-        output_row(1, 1, "A", "after_snap", 100, 80, 0.5, 2.5),
-        output_row(1, 1, "A", "before_pass", 110, 75, 1.2, 3.2),
-        output_row(1, 1, "B", "after_snap", 20, 12, 0.5, 2.5),
-        output_row(1, 1, "B", "before_pass", 15, 8, 1.2, 3.2),
-        output_row(2, 2, "A", "after_snap", 110, 85, 0.5, 2.5),
-        output_row(2, 2, "A", "before_pass", 115, 80, 1.2, 3.2),
-        output_row(2, 2, "B", "after_snap", 25, 17, 0.5, 2.5),
-        output_row(2, 2, "B", "before_pass", 18, 12, 1.2, 3.2),
+        output_row(1, 1, "A", "after_snap", 100, 80, 0.5, 2.5, 100.0, 100.0),
+        output_row(1, 1, "A", "before_pass", 110, 75, 1.2, 3.2, 92.5, 92.5),
+        output_row(1, 1, "B", "after_snap", 20, 12, 0.5, 2.5, 20.0, a_20_6),
+        output_row(1, 1, "B", "before_pass", 15, 8, 1.2, 3.2, 11.5, 11.5),
+        output_row(2, 2, "A", "after_snap", 110, 85, 0.5, 2.5, 97.5, 87.5),
+        output_row(2, 2, "A", "before_pass", 115, 80, 1.2, 3.2, 97.5, 97.5),
+        output_row(2, 2, "B", "after_snap", 25, 17, 0.5, 2.5, 21.0, 21.0),
+        output_row(2, 2, "B", "before_pass", 18, 12, 1.2, 3.2, 15.0, 15.0),
     ]
     assert actual_rows == expected
 
