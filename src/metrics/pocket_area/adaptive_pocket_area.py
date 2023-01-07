@@ -14,7 +14,10 @@ from src.metrics.pocket_area.helpers import (
     get_location,
     split_records_by_role,
 )
-from src.metrics.pocket_area.passer_radius_area import get_passer_radius_area
+from src.metrics.pocket_area.passer_radius_area import (
+    find_closest_player,
+    get_passer_radius_area,
+)
 from src.metrics.pocket_area.pocket_pb_ch_area import get_convex_hull
 
 """
@@ -30,38 +33,31 @@ Adaptive Corvex Hull Pseudocode:
 """
 
 
-def find_closest_player_s(
+def filter_players_within_difference(
     point: Dict,
     blockers: List[Dict],
-    rushers: List[Dict],
     rusher_difference: float,
+    closest_rusher_distance: float,
 ):
+
     """Returns the closest players to the given point and the distance
 
     rusher_difference : acceptable difference parameter from the closest rusher
     and any other player that should be considered to make the pocket
     """
-    if not rushers:
-        raise InvalidPocketError("No rusher to guage pocket.")
 
     closest_players: List[Dict] = []
     closest_distance = float("inf")
 
-    # Find the closest rusher's distance
-    for player in rushers:
-        d = get_distance(point, player)
-        if d < (closest_distance) or closest_distance == float("inf"):
-            closest_distance = d
-
-    players = blockers + rushers
+    players = blockers
 
     # Determine whether each rusher is within the rusher difference error
     for player in players:
         d = get_distance(point, player)
-        if d <= (closest_distance + rusher_difference):
+        if d <= (closest_rusher_distance + rusher_difference):
             closest_players.append(player)
 
-    return closest_players, closest_distance
+    return closest_players
 
 
 # Corvex Hull function with blockers and rushers combined
@@ -88,18 +84,24 @@ def calculate_adaptive_pocket_area(frame: pd.DataFrame) -> PocketArea:
     pocket_players = rushers + blockers + [passer]
     # use helper function in this file to get all the rushers that have a distance 3 yards
     # within the distance from the closest rusher to the quarterback
-    closest_rushers = find_closest_player_s(passer, blockers, rushers, 1.0)
+    closest_rusher, closest_distance = find_closest_player(passer, rushers)
+    closest_lineman = filter_players_within_difference(
+        passer, blockers, closest_distance, 1.5
+    )
 
     # adjusted pocket will get all the pass rushers that make a valid pocket along with the qb
-    adjusted_pocket = closest_rushers[0] + [passer]
+    adjusted_pocket = closest_lineman + [passer] + [closest_rusher]
 
     # If there is 2 or more valid pass rushers, get the corvex hull of the rushers and qb
-    if len(closest_rushers[0]) >= 2:
+    if len(closest_lineman) >= 2:
         return get_convexHull_area(adjusted_pocket)
     # If there is one valid rusher, make the radius the distance from the rusher to qb,
     # restrict the area of the pocket two 1/3rd of a circle in front of the qb, make the metadata.edge
     # variable the location of the nearest pass rusher
     else:
         pocket_area = get_passer_radius_area(adjusted_pocket)
-        # ex, ey = closest_rushers[0][0].get("x"), closest_rushers[0][0].get("y")
-        return PocketArea(pocket_area.area / 3, pocket_area.metadata)
+        # ex, ey = closest_lineman[0].get("x"), closest_lineman[0].get("y")
+        metadata = PocketAreaMetadata(radius=pocket_area.metadata.radius)
+        # Dividing the total area of the pocket by 3 to only consider the 120 degrees of the circle that would
+        #  be right in front of the quarterback
+        return PocketArea(pocket_area.area / 3, metadata)
