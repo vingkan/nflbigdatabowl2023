@@ -31,7 +31,7 @@ DEFAULT_OUTPATH = "/workspace/nflbigdatabowl2023/data/outputs"
 def main_flow(**kwargs):
     # Get flow parameters.
     inpath = kwargs.get("inpath", DEFAULT_INPATH)
-    outpath = kwargs.get("outpath", DEFAULT_INPATH)
+    outpath = kwargs.get("outpath", DEFAULT_OUTPATH)
     # Maximum number of weeks to process. If None, process all.
     max_weeks = kwargs.get("max_weeks", 8)
     # Maximum number of games to process. If None, process all.
@@ -109,9 +109,7 @@ def main_flow(**kwargs):
     )
 
     # Write outputs to disk.
-    task(write_csv)(
-        df_tracking_display, f"{outpath}/outputs/tracking_display.csv"
-    )
-    task(write_csv)(df_events, f"{outpath}/outputs/events.csv")
-    task(write_csv)(df_areas, f"{outpath}/outputs/pocket_areas.csv")
-    task(write_csv)(df_play_metrics, f"{outpath}/outputs/play_metrics.csv")
+    task(write_csv)(df_tracking_display, f"{outpath}/tracking_display.csv")
+    task(write_csv)(df_events, f"{outpath}/events.csv")
+    task(write_csv)(df_areas, f"{outpath}/pocket_areas.csv")
+    task(write_csv)(df_play_metrics, f"{outpath}/play_metrics.csv")

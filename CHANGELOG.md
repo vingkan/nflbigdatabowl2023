@@ -1,4 +1,4 @@
-# 0.0.3
+# 0.0.8
 
 Versions between this and 0.0.1 are testing the package release process.
 
