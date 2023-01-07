@@ -1,3 +1,23 @@
 [build-system]
-requires = ["setuptools>=42.0", "wheel"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "nflpocketarea2023"
+version = "0.0.0"
+authors = [
+  { name="Vinesh Kannan", email="v@hawk.iit.edu" },
+  { name="Tabor Alemu", email="talemu@hawk.iit.edu" },
+  { name="Alek Popovic", email="apopovic@hawk.iit.edu" },
+]
+description = "NFL Big Data Bowl 2023: Analyzing pocket area."
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/vingkan/nflbigdatabowl2023"
