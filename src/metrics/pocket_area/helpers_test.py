@@ -72,7 +72,8 @@ def test_pocket_from_json():
     data = {"area": 7.12, "metadata": {"vertices": [(0, 1), (2, 3)]}}
     actual = pocket_from_json(data)
     expected = PocketArea(
-        area=7.12, metadata=PocketAreaMetadata(vertices=[(0, 1), (2, 3)])
+        area=7.12,
+        metadata=PocketAreaMetadata(vertices=[(0, 1), (2, 3)]),
     )
     assert actual == expected
 
@@ -80,10 +81,7 @@ def test_pocket_from_json():
 def test_pocket_from_json_null_area():
     data = {
         "area": None,
-        "metadata": {
-            "radius": 12,
-            "center": (4, 5),
-        },
+        "metadata": {"radius": 12, "center": (4, 5)},
     }
     actual = pocket_from_json(data)
     expected = PocketArea(
@@ -101,7 +99,8 @@ def test_pocket_from_json_no_metadata():
 
 def test_pocket_to_json():
     pocket = PocketArea(
-        area=7.12, metadata=PocketAreaMetadata(vertices=[(0, 1), (2, 3)])
+        area=7.12,
+        metadata=PocketAreaMetadata(vertices=[(0, 1), (2, 3)]),
     )
     actual = pocket_to_json(pocket)
     expected = {"area": 7.12, "metadata": {"vertices": [(0, 1), (2, 3)]}}
@@ -110,15 +109,13 @@ def test_pocket_to_json():
 
 def test_pocket_to_json_null_area():
     pocket = PocketArea(
-        area=np.nan, metadata=PocketAreaMetadata(radius=12, center=(4, 5))
+        area=np.nan,
+        metadata=PocketAreaMetadata(radius=12, center=(4, 5)),
     )
     actual = pocket_to_json(pocket)
     expected = {
         "area": None,
-        "metadata": {
-            "radius": 12,
-            "center": (4, 5),
-        },
+        "metadata": {"radius": 12, "center": (4, 5)},
     }
     assert actual == expected
 
@@ -126,7 +123,5 @@ def test_pocket_to_json_null_area():
 def test_pocket_to_json_no_metadata():
     pocket = PocketArea(area=42)
     actual = pocket_to_json(pocket)
-    expected = {
-        "area": 42,
-    }
+    expected = {"area": 42}
     assert actual == expected
