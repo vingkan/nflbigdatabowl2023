@@ -23,7 +23,7 @@ def calculate_pocket_safely(
         try:
             pocket_area = calculate_fn(records)
         except Exception as ex:
-            print(f"Exception in {function_name}: {ex}")
+            # print(f"Exception in {function_name}: {ex}")
             pocket_area = PocketArea(area=np.nan)
 
         if not isinstance(pocket_area, PocketArea):
