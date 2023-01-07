@@ -56,13 +56,12 @@ def rotate_tracking_data(df_tracking: pd.DataFrame) -> pd.DataFrame:
     df = pd.DataFrame(df_tracking)
 
     # Rotate coordinates.
-    # Save copy of original coordinates before swapping and transforming.
-    original_x = df["x"]
-    original_y = df["y"]
+    # Save copy of original x coordinates before swapping and transforming.
+    original_x = df["x"].copy()
     # x-coordinate takes the value of the y-coordinate, but also needs to reset
     # the axis to run from 0 to 53.333 instead of from 53.333 to 0.
-    df["x"] = FIELD_WIDTH - original_y
-    # y-coordinate just takes the value of the x-coordinate.
+    df["x"] = FIELD_WIDTH - df["y"]
+    # y-coordinate just takes the original value of the x-coordinate.
     df["y"] = original_x
 
     # Rotate angles.
