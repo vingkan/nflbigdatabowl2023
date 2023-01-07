@@ -150,7 +150,6 @@ def get_pocket_eligibility(
     )
 
     # Fill plays with null start and end frames with None.
-
     df["frame_start"] = df["frame_start"].replace({np.nan: None})
     df["frame_end"] = df["frame_end"].replace({np.nan: None})
 
