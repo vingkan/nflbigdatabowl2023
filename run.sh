@@ -10,6 +10,7 @@ install_system_packages () {
 
 install_python_requirements () {
     # Create and activate Python virtual environment
+    pyenv local 3.7.12
     python3 -m venv .venv
     source .venv/bin/activate
     # Install Python dependencies
