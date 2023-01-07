@@ -1,9 +1,16 @@
+import numpy as np
 import pytest
 
-from src.metrics.pocket_area.base import InvalidPocketError
+from src.metrics.pocket_area.base import (
+    InvalidPocketError,
+    PocketArea,
+    PocketAreaMetadata,
+)
 from src.metrics.pocket_area.helpers import (
     convert_pff_role_to_pocket_role,
     get_distance,
+    pocket_from_json,
+    pocket_to_json,
     split_records_by_role,
 )
 
@@ -59,3 +66,62 @@ def test_convert_pff_role_to_pocket_role():
     assert convert_pff_role_to_pocket_role("Pass Block") == "blocker"
     assert convert_pff_role_to_pocket_role("Football") == "unknown"
     assert convert_pff_role_to_pocket_role("Something Else") == "unknown"
+
+
+def test_pocket_from_json():
+    data = {"area": 7.12, "metadata": {"vertices": [(0, 1), (2, 3)]}}
+    actual = pocket_from_json(data)
+    expected = PocketArea(
+        area=7.12,
+        metadata=PocketAreaMetadata(vertices=[(0, 1), (2, 3)]),
+    )
+    assert actual == expected
+
+
+def test_pocket_from_json_null_area():
+    data = {
+        "area": None,
+        "metadata": {"radius": 12, "center": (4, 5)},
+    }
+    actual = pocket_from_json(data)
+    expected = PocketArea(
+        area=np.nan, metadata=PocketAreaMetadata(radius=12, center=(4, 5))
+    )
+    assert actual == expected
+
+
+def test_pocket_from_json_no_metadata():
+    data = {"area": 42}
+    actual = pocket_from_json(data)
+    expected = PocketArea(area=42)
+    assert actual == expected
+
+
+def test_pocket_to_json():
+    pocket = PocketArea(
+        area=7.12,
+        metadata=PocketAreaMetadata(vertices=[(0, 1), (2, 3)]),
+    )
+    actual = pocket_to_json(pocket)
+    expected = {"area": 7.12, "metadata": {"vertices": [(0, 1), (2, 3)]}}
+    assert actual == expected
+
+
+def test_pocket_to_json_null_area():
+    pocket = PocketArea(
+        area=np.nan,
+        metadata=PocketAreaMetadata(radius=12, center=(4, 5)),
+    )
+    actual = pocket_to_json(pocket)
+    expected = {
+        "area": None,
+        "metadata": {"radius": 12, "center": (4, 5)},
+    }
+    assert actual == expected
+
+
+def test_pocket_to_json_no_metadata():
+    pocket = PocketArea(area=42)
+    actual = pocket_to_json(pocket)
+    expected = {"area": 42}
+    assert actual == expected
