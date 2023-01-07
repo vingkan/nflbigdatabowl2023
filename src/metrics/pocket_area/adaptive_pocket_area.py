@@ -93,7 +93,7 @@ def calculate_adaptive_pocket_area(frame: pd.DataFrame) -> PocketArea:
     adjusted_pocket = closest_lineman + [passer] + [closest_rusher]
 
     # If there is 2 or more valid pass rushers, get the corvex hull of the rushers and qb
-    if len(closest_lineman) >= 2:
+    if len(closest_lineman) >= 1:
         return get_convexHull_area(adjusted_pocket)
     # If there is one valid rusher, make the radius the distance from the rusher to qb,
     # restrict the area of the pocket two 1/3rd of a circle in front of the qb, make the metadata.edge
