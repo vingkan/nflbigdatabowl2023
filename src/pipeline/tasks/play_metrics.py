@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 
@@ -64,14 +65,6 @@ def get_play_pocket_metrics(df_area: pd.DataFrame) -> pd.DataFrame:
         - area
 
     The input can contain as many types of time window as needed.
-    For example:
-    - window_type = `x_after_snap`:
-      - Already filtered out frames before the snap.
-        - Already filtered out any plays that end less than X seconds after snap.
-    - window_type = `x_before_pass`:
-      - Already filtered out frames earlier than X seconds before pass.
-      - Already filtered out frames after pass.
-        - Already filtered out any plays where the pass is less than X seconds after the snapp
 
     Returns:
     Contains columns:
@@ -79,6 +72,8 @@ def get_play_pocket_metrics(df_area: pd.DataFrame) -> pd.DataFrame:
         - playId (PK)
         - method (PK)
         - window_type (PK)
+        - median_area
+        - average_area
         - area_start
         - area_end
         - time_start
@@ -91,6 +86,8 @@ def get_play_pocket_metrics(df_area: pd.DataFrame) -> pd.DataFrame:
     aggregations = {
         "min": ("frameId", min),
         "max": ("frameId", max),
+        "median_area": ("area", np.median),
+        "average_area": ("area", np.mean),
     }
     df_time_window = df.groupby(play_keys).agg(**aggregations).reset_index()
     """
@@ -106,13 +103,15 @@ def get_play_pocket_metrics(df_area: pd.DataFrame) -> pd.DataFrame:
     # Join in the start pocket area for each play.
     # Note: The join should explode if there are multiple `method` rows, so that we get each of them.
     # Note: The join columns have different names on each side.
-    start_cols = play_keys + ["frameId", "min", "max", "area_start"]
+    window_cols = ["median_area", "average_area"]
+    start_cols = ["frameId", "min", "max", "area_start"]
+    all_start_cols = play_keys + window_cols + start_cols
     df_with_start = df_time_window.merge(
         df,
         left_on=(play_keys + ["min"]),
         right_on=(play_keys + ["frameId"]),
         how="left",
-    ).rename(columns={"area": "area_start"})[start_cols]
+    ).rename(columns={"area": "area_start"})[all_start_cols]
     # Join in the end pocket area for each play.
     df_with_both = (
         df_with_start.merge(

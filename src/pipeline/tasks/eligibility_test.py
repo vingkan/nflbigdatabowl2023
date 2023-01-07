@@ -59,40 +59,26 @@ def test_get_pocket_eligibility():
     )
     df_passer_out_of_pocket = pd.DataFrame(
         [
-            {**play_1, "frameId": 1, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 2, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 3, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 4, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 5, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 6, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 7, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 8, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 9, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 10, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 11, "passer_out_of_pocket": False},
-            {**play_1, "frameId": 12, "passer_out_of_pocket": False},
+            {**play_1, "frameId": frame_id, "passer_out_of_pocket": False}
+            for frame_id in range(1, 13)
         ]
     )
     actual = get_pocket_eligibility(df_events, df_passer_out_of_pocket)
     p = {"gameId": 1, "playId": 1}
+    pocket = {"frame_start": 3, "frame_end": 7}
     expected = [
-        {**p, "frameId": 1, "event": None, "eligible_for_pocket": False},
-        {**p, "frameId": 2, "event": None, "eligible_for_pocket": False},
-        {**p, "frameId": 3, "event": "ball_snap", "eligible_for_pocket": True},
-        {**p, "frameId": 4, "event": None, "eligible_for_pocket": True},
-        {**p, "frameId": 5, "event": None, "eligible_for_pocket": True},
-        {**p, "frameId": 6, "event": None, "eligible_for_pocket": True},
-        {**p, "frameId": 7, "event": "fumble", "eligible_for_pocket": True},
-        {**p, "frameId": 8, "event": None, "eligible_for_pocket": False},
-        {
-            **p,
-            "frameId": 9,
-            "event": "fumble_recovered_offense",
-            "eligible_for_pocket": False,
-        },
-        {**p, "frameId": 10, "event": None, "eligible_for_pocket": False},
-        {**p, "frameId": 11, "event": "fumble", "eligible_for_pocket": False},
-        {**p, "frameId": 12, "event": None, "eligible_for_pocket": False},
+        {**p, "frameId": 1, "event": None, **pocket},
+        {**p, "frameId": 2, "event": None, **pocket},
+        {**p, "frameId": 3, "event": "ball_snap", **pocket},
+        {**p, "frameId": 4, "event": None, **pocket},
+        {**p, "frameId": 5, "event": None, **pocket},
+        {**p, "frameId": 6, "event": None, **pocket},
+        {**p, "frameId": 7, "event": "fumble", **pocket},
+        {**p, "frameId": 8, "event": None, **pocket},
+        {**p, "frameId": 9, "event": "fumble_recovered_offense", **pocket},
+        {**p, "frameId": 10, "event": None, **pocket},
+        {**p, "frameId": 11, "event": "fumble", **pocket},
+        {**p, "frameId": 12, "event": None, **pocket},
     ]
     assert actual.to_dict(orient="records") == expected
 
@@ -117,11 +103,12 @@ def test_get_pocket_eligibility_passer_left_pocket():
     )
     actual = get_pocket_eligibility(df_events, df_passer_out_of_pocket)
     p = {"gameId": 1, "playId": 1}
+    pocket = {"frame_start": 2, "frame_end": 4}
     expected = [
-        {**p, "frameId": 1, "event": None, "eligible_for_pocket": False},
-        {**p, "frameId": 2, "event": "ball_snap", "eligible_for_pocket": True},
-        {**p, "frameId": 3, "event": None, "eligible_for_pocket": True},
-        {**p, "frameId": 4, "event": None, "eligible_for_pocket": False},
+        {**p, "frameId": 1, "event": None, **pocket},
+        {**p, "frameId": 2, "event": "ball_snap", **pocket},
+        {**p, "frameId": 3, "event": None, **pocket},
+        {**p, "frameId": 4, "event": None, **pocket},
     ]
     assert actual.to_dict(orient="records") == expected
 
@@ -146,11 +133,12 @@ def test_get_pocket_eligibility_never_started():
     )
     actual = get_pocket_eligibility(df_events, df_passer_out_of_pocket)
     p = {"gameId": 1, "playId": 1}
+    pocket = {"frame_start": None, "frame_end": None}
     expected = [
-        {**p, "frameId": 1, "event": None, "eligible_for_pocket": False},
-        {**p, "frameId": 2, "event": "line_set", "eligible_for_pocket": False},
-        {**p, "frameId": 3, "event": None, "eligible_for_pocket": False},
-        {**p, "frameId": 4, "event": None, "eligible_for_pocket": False},
+        {**p, "frameId": 1, "event": None, **pocket},
+        {**p, "frameId": 2, "event": "line_set", **pocket},
+        {**p, "frameId": 3, "event": None, **pocket},
+        {**p, "frameId": 4, "event": None, **pocket},
     ]
     assert actual.to_dict(orient="records") == expected
 
@@ -177,11 +165,12 @@ def test_get_pocket_eligibility_never_ended():
     )
     actual = get_pocket_eligibility(df_events, df_passer_out_of_pocket)
     p = {"gameId": 1, "playId": 1}
+    pocket = {"frame_start": 2, "frame_end": 5}
     expected = [
-        {**p, "frameId": 1, "event": None, "eligible_for_pocket": False},
-        {**p, "frameId": 2, "event": "ball_snap", "eligible_for_pocket": True},
-        {**p, "frameId": 3, "event": None, "eligible_for_pocket": True},
-        {**p, "frameId": 4, "event": "pump_fake", "eligible_for_pocket": True},
-        {**p, "frameId": 5, "event": None, "eligible_for_pocket": True},
+        {**p, "frameId": 1, "event": None, **pocket},
+        {**p, "frameId": 2, "event": "ball_snap", **pocket},
+        {**p, "frameId": 3, "event": None, **pocket},
+        {**p, "frameId": 4, "event": "pump_fake", **pocket},
+        {**p, "frameId": 5, "event": None, **pocket},
     ]
     assert actual.to_dict(orient="records") == expected

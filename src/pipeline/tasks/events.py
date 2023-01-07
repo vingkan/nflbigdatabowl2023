@@ -93,8 +93,7 @@ def augment_tracking_events(
     """
     Copies the tracking DataFrame and replaces the `event` column with the
     cleaned event for that frame.
-    Also any additional columns from event data, such as `eligible_for_pocket`.
-
+    Also new columns from event data, such as `frame_start` and `frame_end`.
     """
     # Returns a copy of the DataFrame without the old event column.
     df_base = df_tracking.drop(columns=["event"])
