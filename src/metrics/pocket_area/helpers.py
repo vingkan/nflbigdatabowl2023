@@ -1,10 +1,15 @@
+import dataclasses
 import math
 from typing import Dict, List, Tuple
+
+import numpy as np
 
 from src.metrics.pocket_area.base import (
     PFF_ROLE_TO_POCKET_ROLE,
     InvalidPocketError,
     PFFRole,
+    PocketArea,
+    PocketAreaMetadata,
     PocketRole,
 )
 
@@ -68,3 +73,39 @@ def convert_pff_role_to_pocket_role(raw: str) -> str:
     if not pocket_role:
         return PocketRole.UNKNOWN.value
     return pocket_role.value
+
+
+def pocket_to_json(pocket: PocketArea) -> Dict:
+    # Convert nested dataclass to dictionary.
+    data = dataclasses.asdict(pocket)
+
+    # The dataclass does not allow a None for area, but we cannot parse a
+    # np.nan from a string, so if the area is np.nan, set it to None.
+    if np.isnan(data["area"]):
+        data["area"] = None
+
+    # Only keep metadata fields that are not None.
+    metadata = {}
+    metadata_fields = data.get("metadata", {})
+    for key, value in metadata_fields.items():
+        if value is not None:
+            metadata[key] = value
+    data["metadata"] = metadata
+    if not metadata:
+        del data["metadata"]
+
+    return data
+
+
+def pocket_from_json(data: Dict) -> PocketArea:
+    # The dataclass does not allow a None for area, but we cannot parse a
+    # np.nan from a string, so if the area is None, set it to np.nan.
+    area = data.get("area")
+    if area is None:
+        area = np.nan
+
+    # Use metadata fields as optional keyword arguments to create metadata.
+    metadata = PocketAreaMetadata(**data.get("metadata", {}))
+
+    pocket = PocketArea(area, metadata)
+    return pocket
