@@ -101,7 +101,10 @@ def calculate_adaptive_pocket_area(frame: pd.DataFrame) -> PocketArea:
     else:
         pocket_area = get_passer_radius_area(adjusted_pocket)
         # ex, ey = closest_lineman[0].get("x"), closest_lineman[0].get("y")
-        metadata = PocketAreaMetadata(radius=pocket_area.metadata.radius)
+        metadata = PocketAreaMetadata(
+            radius=pocket_area.metadata.radius,
+            center=pocket_area.metadata.center,
+        )
         # Dividing the total area of the pocket by 3 to only consider the 120 degrees of the circle that would
         #  be right in front of the quarterback
         return PocketArea(pocket_area.area / 3, metadata)
