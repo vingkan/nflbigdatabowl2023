@@ -26,6 +26,7 @@ def voronoi_pocket_area(players: List[Dict]) -> PocketArea:
         # so that the pocket boundary will fall at the midpoint.
         (passer["x"], passer["y"] - (2 * pocket_max_depth_behind_passer)),
         # Limit pocket area in front of passer to line of scrimmage (y = 0).
+        # TODO(vinesh): Reorient tracking data so that y = 0 is L.O.S.
         (passer["x"], 0),
         # Limit pocket area to sides of passer. Double the max side width so
         # that the pocket boundary will fall at the midpoint.
