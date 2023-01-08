@@ -1,11 +1,11 @@
 import math
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.axes import Axes
-from matplotlib.patches import Circle, Patch, Polygon, Rectangle
+from matplotlib.patches import Arrow, Circle, Patch, Polygon, Rectangle
 from matplotlib.ticker import MultipleLocator
 
 from src.metrics.pocket_area.base import InvalidPocketError, PocketArea
@@ -17,7 +17,8 @@ from src.visualization.pocket_area import (
 )
 
 PLOT_RATIO = 0.4
-FIG_X_RATIO = 1.15
+FIG_X_RATIO_ONE_COL = 1
+FIG_X_RATIO_TWO_COLS = 1.15
 PIXEL_RATIO = 80
 
 PLAYER_DIAMETER = 1
@@ -55,6 +56,165 @@ ROLE_TO_COLOR = {
     "Pass Block": "#027bbd",
     "Pass Rush": "#bd0250",
 }
+
+
+def get_play_pocket_bounds(
+    df_tracking_display: pd.DataFrame,
+) -> Tuple[float, float, float, float]:
+    # Filter tracking data for the play to players with pocket-related roles.
+    df_pocket_only = df_tracking_display.query(f"pff_role in {RELEVANT_ROLES}")
+
+    # Get bounding box only for the players involved in the pocket.
+    x = df_pocket_only["x"]
+    y = df_pocket_only["y"]
+    x_min = x.min() - MARGIN_YARD_LINES
+    x_max = x.max() + MARGIN_YARD_LINES
+    y_min = y.min() - MARGIN_YARD_LINES
+    y_max = y.max() + MARGIN_YARD_LINES
+
+    return x_min, x_max, y_min, y_max
+
+
+def get_viewable_objects(
+    df_tracking_display: pd.DataFrame,
+    pocket_bounds: Tuple[float, float, float, float],
+) -> pd.DataFrame:
+    # Get tracking data for players viewable within the pocket bounding box.
+    x_min, x_max, y_min, y_max = pocket_bounds
+    viewable_query = f"({x_min} <= x <= {x_max}) and ({y_min} <= y <= {y_max})"
+    df_viewable = df_tracking_display.query(viewable_query)
+    return df_viewable.to_dict(orient="records")
+
+
+def plot_play_pocket(
+    df_tracking: pd.DataFrame,
+    frame_id: int,
+    pocket_layer: Optional[List[Patch]] = None,
+):
+    if pocket_layer is None:
+        pocket_layer = []
+
+    # Get bounding box only for the players involved in the pocket.
+    pocket_bounds = get_play_pocket_bounds(df_tracking)
+
+    # Get objects for players viewable, just for this frame.
+    df_tracking_frame = df_tracking[df_tracking["frameId"] == frame_id]
+    viewable_objects = get_viewable_objects(df_tracking_frame, pocket_bounds)
+
+    # Determine figure dimensions based on play pocket bounds.
+    x_min, x_max, y_min, y_max = pocket_bounds
+    x_dim = PLOT_RATIO * (x_max - x_min)
+    y_dim = PLOT_RATIO * (y_max - y_min)
+
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(FIG_X_RATIO_ONE_COL * x_dim, y_dim)
+
+    # Configure axes for frame and pocket area plot.
+    frame_title = f"Frame {frame_id}"
+    ax.set_title(frame_title)
+    ax.set_axisbelow(True)
+
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
+
+    # Create and plot layers of patches.
+    player_layer = get_player_patches(viewable_objects)
+    patches_layers = [pocket_layer, player_layer]
+    plot_pocket_players(ax, patches_layers)
+    plot_jersey_numbers(ax, viewable_objects)
+
+
+def plot_pocket_players(ax: Axes, patches_layers: List[List[Patch]]):
+    # Configure axes for frame and pocket area plot.
+    ax.xaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
+    ax.yaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
+    ax.xaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
+    ax.yaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
+
+    ax.grid(which="both", **GRID_LINE_KWARGS)
+
+    # Plot patches in layer order.
+    for layer in patches_layers:
+        for patch in layer:
+            ax.add_patch(patch)
+
+
+def get_player_patches(objects: List[Dict]) -> List[Patch]:
+    # Create graphics for each object in the frame.
+    patches = []
+    for p in objects:
+        # Get attributes used by all objects.
+        x, y = p["x"], p["y"]
+        role = p["pff_role"]
+        color = ROLE_TO_COLOR.get(role, "lightgray")
+
+        # Render football.
+        if role == FOOTBALL_ROLE:
+            ball = Circle((x, y), FOOTBALL_RADIUS, color=color)
+            patches.append(ball)
+            continue
+
+        # Render player direction arrow.
+        degrees = p["dir"]
+        radians = math.radians((-1 * degrees) + 90)
+        dx = math.cos(radians)
+        dy = math.sin(radians)
+        direction = Arrow(x, y, dx, dy, color="lightgray")
+        patches.append(direction)
+
+        # Render player orientation arrow.
+        degrees = p["o"]
+        radians = math.radians((-1 * degrees) + 90)
+        dx = math.cos(radians)
+        dy = math.sin(radians)
+        orientation = Arrow(x, y, dx, dy, color=color)
+        patches.append(orientation)
+
+        # Render player.
+        circle = Circle((x, y), PLAYER_RADIUS, color=color)
+        patches.append(circle)
+
+        # Render player jersey number.
+        y_offset = Y_OFFSET_JERSEY
+        x_offset = X_OFFSET_SINGLE_JERSEY_NUMBER
+        if len(str(p["jerseyNumber"])) > 1:
+            x_offset = X_OFFSET_DOUBLE_JERSEY_NUMBER
+        # text = ax.text(
+        #     x - x_offset,
+        #     y - y_offset,
+        #     p["jerseyNumber"],
+        #     fontsize=FONT_SIZE,
+        #     color="white",
+        # )
+        # TODO(vinesh): Handle text for jersey number.
+
+    return patches
+
+
+def plot_jersey_numbers(ax: Axes, objects: List[Dict]):
+    # Currently, we have to plot text for jersey numbers separately because
+    # text is a method of the plot, not a patch.
+    for p in objects:
+        # Get attributes used by all objects.
+        x, y = p["x"], p["y"]
+        role = p["pff_role"]
+
+        # No jersey number needed for the football.
+        if role == FOOTBALL_ROLE:
+            continue
+
+        # Render player jersey number.
+        y_offset = Y_OFFSET_JERSEY
+        x_offset = X_OFFSET_SINGLE_JERSEY_NUMBER
+        if len(str(p["jerseyNumber"])) > 1:
+            x_offset = X_OFFSET_DOUBLE_JERSEY_NUMBER
+        text = ax.text(
+            x - x_offset,
+            y - y_offset,
+            p["jerseyNumber"],
+            fontsize=FONT_SIZE,
+            color="white",
+        )
 
 
 def plot_pocket_area_timeline(
@@ -155,23 +315,14 @@ def create_interactive_pocket_area(
         continuous_update: If True, redraw the plot while dragging the frame ID
             slider. If False (default), only redraw after releasing the slider.
     """
-
-    # Filter to relevant roles
-    df_pocket_only = df_tracking_display.query(f"pff_role in {RELEVANT_ROLES}")
-
     # Get bounding box only for the players involved in the pocket.
-    x = df_pocket_only["x"]
-    y = df_pocket_only["y"]
-    x_min = x.min() - MARGIN_YARD_LINES
-    x_max = x.max() + MARGIN_YARD_LINES
-    y_min = y.min() - MARGIN_YARD_LINES
-    y_max = y.max() + MARGIN_YARD_LINES
+    pocket_bounds = get_play_pocket_bounds(df_tracking_display)
+    viewable_objects = get_viewable_objects(df_tracking_display, pocket_bounds)
+
+    # Determine figure dimensions based on play pocket bounds.
+    x_min, x_max, y_min, y_max = pocket_bounds
     x_dim = PLOT_RATIO * (x_max - x_min)
     y_dim = PLOT_RATIO * (y_max - y_min)
-
-    # Get tracking data for players viewable within the pocket bounding box.
-    viewable_query = f"({x_min} <= x <= {x_max}) and ({y_min} <= y <= {y_max})"
-    df_viewable = df_tracking_display.query(viewable_query)
 
     # Get frame range.
     max_frames = df_tracking_display["frameId"].max()
@@ -187,7 +338,7 @@ def create_interactive_pocket_area(
 
     # Store objects for each frame to avoid filtering cost on each redraw.
     objects_per_frame: Dict[int, List[Dict]] = {}
-    for obj in df_viewable.to_dict(orient="records"):
+    for obj in viewable_objects:
         frame_id = obj["frameId"]
         if frame_id not in objects_per_frame:
             objects_per_frame[frame_id] = []
@@ -212,7 +363,7 @@ def create_interactive_pocket_area(
         n_rows = 1
         n_cols = 2
         fig, (ax, ax2) = plt.subplots(n_rows, n_cols)
-        x_fig = FIG_X_RATIO * n_cols * x_dim
+        x_fig = FIG_X_RATIO_TWO_COLS * n_cols * x_dim
         y_fig = n_rows * y_dim
         fig.set_size_inches(x_fig, y_fig)
 
@@ -224,19 +375,13 @@ def create_interactive_pocket_area(
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
 
-        ax.xaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
-        ax.yaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
-        ax.xaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
-        ax.yaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
-
-        ax.grid(which="both", **GRID_LINE_KWARGS)
-
         # Plot the pocket area over time for the play, if available.
         df_play_areas = area_timeline_by_method.get(area_method)
         if df_play_areas is not None:
             plot_pocket_area_timeline(ax2, frame_id, df_play_areas, df_events)
 
         # Render pocket, if any.
+        pocket_layer = []
         pocket = stored_pockets.get(frame_id, {}).get(area_method)
         if pocket:
             # Add pocket area to title.
@@ -247,51 +392,13 @@ def create_interactive_pocket_area(
             # Render pocket.
             pocket_patch = get_pocket_patch(pocket)
             if pocket_patch:
-                ax.add_patch(pocket_patch)
+                pocket_layer.append(pocket_patch)
 
-        # Create graphics for each object in the frame.
-        for p in objects:
-            # Get attributes used by all objects.
-            x, y = p["x"], p["y"]
-            role = p["pff_role"]
-            color = ROLE_TO_COLOR.get(role, "lightgray")
-
-            # Render football.
-            if role == FOOTBALL_ROLE:
-                ball = Circle((x, y), FOOTBALL_RADIUS, color=color)
-                ax.add_patch(ball)
-                continue
-
-            # Render player orientation arrow.
-            degrees = p["o"]
-            radians = math.radians((-1 * degrees) + 90)
-            dx = math.cos(radians)
-            dy = math.sin(radians)
-            orientation = ax.arrow(x, y, dx, dy, color=color)
-
-            # Render player direction arrow.
-            degrees = p["dir"]
-            radians = math.radians((-1 * degrees) + 90)
-            dx = math.cos(radians)
-            dy = math.sin(radians)
-            direction = ax.arrow(x, y, dx, dy, color="lightgray")
-
-            # Render player.
-            circle = Circle((x, y), PLAYER_RADIUS, color=color)
-            ax.add_patch(circle)
-
-            # Render player jersey number.
-            y_offset = Y_OFFSET_JERSEY
-            x_offset = X_OFFSET_SINGLE_JERSEY_NUMBER
-            if len(str(p["jerseyNumber"])) > 1:
-                x_offset = X_OFFSET_DOUBLE_JERSEY_NUMBER
-            text = ax.text(
-                x - x_offset,
-                y - y_offset,
-                p["jerseyNumber"],
-                fontsize=FONT_SIZE,
-                color="white",
-            )
+        # Plot layers for pocket play visualizer.
+        player_layer = get_player_patches(objects)
+        patches_layers = [pocket_layer, player_layer]
+        plot_pocket_players(ax, patches_layers)
+        plot_jersey_numbers(ax, objects)
 
     # Attach an interactive slider to the redraw function.
     layout_width_pixels = PIXEL_RATIO * x_dim
