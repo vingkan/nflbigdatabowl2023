@@ -5,8 +5,11 @@ import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.axes import Axes
-from matplotlib.patches import Arrow, Circle, Patch, Polygon, Rectangle
+from matplotlib.patches import Arrow, Circle, Patch
+from matplotlib.patches import Polygon as PolygonPatch
+from matplotlib.patches import Rectangle
 from matplotlib.ticker import MultipleLocator
+from shapely import Polygon as ShapelyPolygon
 
 from src.metrics.pocket_area.base import InvalidPocketError, PocketArea
 from src.visualization.pocket_area import (
@@ -17,8 +20,8 @@ from src.visualization.pocket_area import (
 )
 
 PLOT_RATIO = 0.4
-FIG_X_RATIO_ONE_COL = 1
-FIG_X_RATIO_TWO_COLS = 1.15
+FIG_X_RATIO_ONE_COL = 1.0
+FIG_X_RATIO_MULTIPLE_COLS = 1.15
 PIXEL_RATIO = 80
 
 PLAYER_DIAMETER = 1
@@ -58,6 +61,50 @@ ROLE_TO_COLOR = {
 }
 
 
+def patch_from_polygon(shape: ShapelyPolygon, **kwargs) -> PolygonPatch:
+    vertices = list(shape.exterior.coords)
+    patch = PolygonPatch(vertices, **kwargs)
+    return patch
+
+
+def get_spotlight_patches(spotlight):
+    start_patch = patch_from_polygon(
+        spotlight["polygon_difference"],
+        color="#ff9cc5",
+        alpha=0.5,
+    )
+    end_patch = patch_from_polygon(
+        spotlight["polygon_end"],
+        color="#b0e3ff",
+        alpha=0.5,
+    )
+    return [start_patch, end_patch]
+
+
+def get_spotlight_plotter(df_tracking, df_spotlight_search):
+    def plot(game_id, play_id):
+        # Get tracking and spotlight data for play.
+        query_play = f"gameId == {game_id} and playId == {play_id}"
+        df_tracking_play = df_tracking.query(query_play)
+        spotlight = df_spotlight_search.query(query_play).reset_index().iloc[0]
+
+        # Select start, mid, and end frames.
+        frame_start = spotlight["window_start"]
+        frame_end = spotlight["window_end"]
+        frame_mid = ((frame_end - frame_start) // 2) + frame_start
+        frame_ids = [frame_start, frame_mid, frame_end]
+
+        # Duplicate pocket underlay for each frame.
+        patches_list = [get_spotlight_patches(spotlight) for _ in frame_ids]
+
+        # Plot each frame.
+        fig, axes = create_play_pocket_figure(df_tracking_play, n_cols=3)
+        for ax, frame, patches in zip(axes, frame_ids, patches_list):
+            plot_play_pocket(ax, df_tracking_play, frame, patches)
+
+    return plot
+
+
 def get_play_pocket_bounds(
     df_tracking_display: pd.DataFrame,
 ) -> Tuple[float, float, float, float]:
@@ -86,7 +133,55 @@ def get_viewable_objects(
     return df_viewable.to_dict(orient="records")
 
 
+def create_play_pocket_figure(df_tracking: pd.DataFrame, n_cols: int):
+    # Get bounding box only for the players involved in the pocket.
+    pocket_bounds = get_play_pocket_bounds(df_tracking)
+
+    # Determine figure dimensions based on play pocket bounds.
+    x_min, x_max, y_min, y_max = pocket_bounds
+    x_dim = PLOT_RATIO * (x_max - x_min)
+    y_dim = PLOT_RATIO * (y_max - y_min)
+
+    # Determine whether to create one plot or two (dual mode).
+    n_rows = 1
+    axes = []
+    subplots = plt.subplots(n_rows, n_cols)
+    if n_cols == 1:
+        fig, ax0 = subplots
+        axes = [ax0]
+        fig_ratio = FIG_X_RATIO_ONE_COL
+    elif n_cols == 2:
+        fig, (ax0, ax1) = subplots
+        axes = [ax0, ax1]
+        fig_ratio = FIG_X_RATIO_MULTIPLE_COLS
+    elif n_cols == 3:
+        fig, (ax0, ax1, ax2) = subplots
+        axes = [ax0, ax1, ax2]
+        fig_ratio = FIG_X_RATIO_MULTIPLE_COLS
+    else:
+        raise ValueError(f"Invalid number of plot columns: {n_cols}")
+
+    # Update figure dimensions.
+    x_fig = fig_ratio * n_cols * x_dim
+    y_fig = n_rows * y_dim
+    fig.set_size_inches(x_fig, y_fig)
+
+    # Configure axes for play pocket plot.
+    for ax in axes:
+        ax.set_axisbelow(True)
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.xaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
+        ax.yaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
+        ax.xaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
+        ax.yaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
+        ax.grid(which="both", **GRID_LINE_KWARGS)
+
+    return subplots
+
+
 def plot_play_pocket(
+    ax: Axes,
     df_tracking: pd.DataFrame,
     frame_id: int,
     pocket_layer: Optional[List[Patch]] = None,
@@ -101,21 +196,9 @@ def plot_play_pocket(
     df_tracking_frame = df_tracking[df_tracking["frameId"] == frame_id]
     viewable_objects = get_viewable_objects(df_tracking_frame, pocket_bounds)
 
-    # Determine figure dimensions based on play pocket bounds.
-    x_min, x_max, y_min, y_max = pocket_bounds
-    x_dim = PLOT_RATIO * (x_max - x_min)
-    y_dim = PLOT_RATIO * (y_max - y_min)
-
-    fig, ax = plt.subplots(1, 1)
-    fig.set_size_inches(FIG_X_RATIO_ONE_COL * x_dim, y_dim)
-
     # Configure axes for frame and pocket area plot.
     frame_title = f"Frame {frame_id}"
     ax.set_title(frame_title)
-    ax.set_axisbelow(True)
-
-    ax.set_xlim(x_min, x_max)
-    ax.set_ylim(y_min, y_max)
 
     # Create and plot layers of patches.
     player_layer = get_player_patches(viewable_objects)
@@ -125,14 +208,6 @@ def plot_play_pocket(
 
 
 def plot_pocket_players(ax: Axes, patches_layers: List[List[Patch]]):
-    # Configure axes for frame and pocket area plot.
-    ax.xaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
-    ax.yaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
-    ax.xaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
-    ax.yaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
-
-    ax.grid(which="both", **GRID_LINE_KWARGS)
-
     # Plot patches in layer order.
     for layer in patches_layers:
         for patch in layer:
@@ -363,7 +438,7 @@ def create_interactive_pocket_area(
         n_rows = 1
         n_cols = 2
         fig, (ax, ax2) = plt.subplots(n_rows, n_cols)
-        x_fig = FIG_X_RATIO_TWO_COLS * n_cols * x_dim
+        x_fig = FIG_X_RATIO_MULTIPLE_COLS * n_cols * x_dim
         y_fig = n_rows * y_dim
         fig.set_size_inches(x_fig, y_fig)
 
@@ -374,6 +449,13 @@ def create_interactive_pocket_area(
 
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
+
+        ax.xaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
+        ax.yaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
+        ax.xaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
+        ax.yaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
+
+        ax.grid(which="both", **GRID_LINE_KWARGS)
 
         # Plot the pocket area over time for the play, if available.
         df_play_areas = area_timeline_by_method.get(area_method)
