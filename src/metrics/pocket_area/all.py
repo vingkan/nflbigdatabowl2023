@@ -10,11 +10,13 @@ from src.metrics.pocket_area.pocket_pb_ch_area import (
 )
 from src.metrics.pocket_area.rushers_pocket_area import rushers_pocket_area
 from src.metrics.pocket_area.voronoi_pocket_area import voronoi_pocket_area
+from src.metrics.pocket_area.voronoi_rushers_only import voronoi_rushers_only
 
 POCKET_AREA_METHODS: Dict[str, PocketAreaFunction] = {
     "passer_radius": get_passer_radius_area,
     "blocker_convex_hull": get_passBlocker_convexHull_area,
     "rushers_pocket_area": rushers_pocket_area,
     "voronoi_pocket_area": voronoi_pocket_area,
+    "voronoi_rushers_only": voronoi_rushers_only,
     "adaptive_pocket_area": calculate_adaptive_pocket_area,
 }
