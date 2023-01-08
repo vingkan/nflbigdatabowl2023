@@ -39,14 +39,7 @@ def test_calculate_pocket_area():
             "playId": 1,
             "frameId": 1,
             "method": "always_seven",
-            "pocket": {
-                "area": 7,
-                "metadata": {
-                    "vertices": None,
-                    "radius": None,
-                    "center": None,
-                },
-            },
+            "pocket": {"area": 7},
             "area": 7,
         },
     ]
@@ -61,10 +54,7 @@ def test_calculate_pocket_safely():
 
     df = pd.DataFrame()
     actual = actual_fn(df)
-    expected = {
-        "area": 7,
-        "metadata": {"vertices": None, "radius": None, "center": None},
-    }
+    expected = {"area": 7}
     assert actual == expected
 
 
@@ -76,10 +66,7 @@ def test_calculate_pocket_safely_with_exception():
 
     df = pd.DataFrame()
     actual = actual_fn(df)
-    expected = {
-        "area": None,
-        "metadata": {"vertices": None, "radius": None, "center": None},
-    }
+    expected = {"area": None}
     assert actual == expected
 
 

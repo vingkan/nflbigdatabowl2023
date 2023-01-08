@@ -40,3 +40,21 @@
         - Scope: `vingkan/nflbigdatabowl2023`
 5. Go to [the GitHub repository page](https://github.com/vingkan/nflbigdatabowl2023) and click the GitPod button at the top of the README to start up a workspace
 6. Automatic setup commands will run on GitPod and then you can use the terminal an editor freely
+
+
+## Release Process
+
+To publish new versions to PyPi ([reference](https://packaging.python.org/en/latest/tutorials/packaging-projects/)):
+
+```bash
+# Increment the version number in pyproject.toml
+# Build package
+rm -rf dist
+python3 -m build
+# Upload to Test PyPi
+python3 -m twine upload --repository testpypi dist/*
+python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps nflpocketarea2023
+# Upload to PyPi
+python3 -m twine upload dist/*
+python3 -m pip install --no-deps nflpocketarea2023
+```

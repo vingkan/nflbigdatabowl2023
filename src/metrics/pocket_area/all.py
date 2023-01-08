@@ -1,5 +1,8 @@
 from typing import Dict
 
+from src.metrics.pocket_area.adaptive_pocket_area import (
+    calculate_adaptive_pocket_area,
+)
 from src.metrics.pocket_area.base import PocketArea, PocketAreaFunction
 from src.metrics.pocket_area.passer_radius_area import get_passer_radius_area
 from src.metrics.pocket_area.pocket_pb_ch_area import (
@@ -15,4 +18,5 @@ POCKET_AREA_METHODS: Dict[str, PocketAreaFunction] = {
     "rushers_pocket_area": rushers_pocket_area,
     "voronoi_pocket_area": voronoi_pocket_area,
     "voronoi_rushers_only": voronoi_rushers_only,
+    "adaptive_pocket_area": calculate_adaptive_pocket_area,
 }

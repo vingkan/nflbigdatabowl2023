@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 
@@ -54,12 +55,9 @@ def get_passer_out_of_pocket(
     )
 
     # Determine whether or not the passer has left the officiated pocket.
-
-    def has_passer_out_of_pocket(row: pd.Series) -> bool:
-        x_delta = abs(row["passer_x"] - row["ball_snap_x"])
-        return x_delta > max_yards_from_snap
-
-    df["passer_out_of_pocket"] = df.apply(has_passer_out_of_pocket, axis=1)
+    df["passer_out_of_pocket"] = (
+        np.abs(df["passer_x"] - df["ball_snap_x"]) > max_yards_from_snap
+    ).astype(int)
 
     # Drop unnecessary columns and return result.
     drop_columns = ["ball_snap_x", "passer_x"]
@@ -67,37 +65,8 @@ def get_passer_out_of_pocket(
     return df
 
 
-def is_eligible_for_pocket(row: pd.Series) -> bool:
-    """Determines whether the given frame could have a pocket."""
-    first_pocket_frame = row["frame_start"]
-    last_pocket_frame = row["frame_end"]
-    frame_id = row["frameId"]
-    has_passer_out_of_pocket = row["passer_out_of_pocket"]
-
-    if pd.isna(has_passer_out_of_pocket):
-        raise ValueError("Null `passer_out_of_pocket`. Join may have failed.")
-
-    # If passer is outside the officiating pocket area, pocket is not eligible.
-    if has_passer_out_of_pocket:
-        return False
-
-    # If there was no first pocket frame, the pocket is never eligible.
-    if pd.isna(first_pocket_frame):
-        return False
-
-    # If there was no last pocket frame, the pocket is eligible starting from
-    # the first frame.
-    if pd.isna(last_pocket_frame):
-        return frame_id >= first_pocket_frame
-
-    # Otherwise, pocket is eligible between the first and last frame, inclusive.
-    return first_pocket_frame <= frame_id <= last_pocket_frame
-
-
 def get_pocket_eligibility(
-    df_events: pd.DataFrame,
-    df_passer_out_of_pocket: pd.DataFrame,
-    keep_intermediate_columns: bool = False,
+    df_events: pd.DataFrame, df_passer_out_of_pocket: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Parameters:
@@ -113,8 +82,7 @@ def get_pocket_eligibility(
             - playId
             - frameId
             - passer_out_of_pocket
-        keep_intermediate_columns: Whether or not to keep columns used to
-            calculate eligibility.
+
     Returns:
         DataFrame with new column to indicate which frames could have a pocket.
             Columns:
@@ -122,21 +90,36 @@ def get_pocket_eligibility(
             - playId
             - frameId
             - event
-            - eligible_for_pocket
+            - frame_start
+            - frame_end
     """
     play_keys = ["gameId", "playId"]
 
-    # Get the frame where the pocket eligibility starts for each play.
+    # Find the maximum frame for each play.
+    df_max = (
+        df_events.groupby(play_keys)
+        .agg(**{"frame_max": ("frameId", max)})
+        .reset_index()
+    )
+
+    # Find the frame where the pocket eligibility starts for each play.
     df_start = (
         df_events.query("event == 'ball_snap'")
         .groupby(play_keys)
         .agg(**{"frame_start": ("frameId", min)})
         .reset_index()
     )
+    # Join start and max frames, as well as passer out of pocket data, to event
+    # data, to help compute end frames.
+    df_with_start = (
+        df_events.merge(df_start, on=play_keys, how="left")
+        .merge(df_max, on=play_keys, how="left")
+        .merge(df_passer_out_of_pocket, on=play_keys + ["frameId"], how="left")
+    )
 
     # Get the frame where the pocket eligibility ends for each play.
-    # TODO(vinesh): Check if there are new types of events in the later weeks of
-    # data that could end pocket eligibility.
+    # TODO(vinesh): Handle edge cases where pocket can be re-established, such
+    # as a botched snap followed by pass from pocket.
     pocket_ending_events = {
         "fumble",
         "handoff",
@@ -145,31 +128,29 @@ def get_pocket_eligibility(
         "qb_sack",
         "qb_strip_sack",
         "run",
+        "tackle",
+        "out_of_bounds",
     }
-    ending_events = ", ".join([f"'{e}'" for e in pocket_ending_events])
-    end_query = f"event in ({ending_events})"
+    is_end_event = df_with_start["event"].isin(pocket_ending_events)
+    is_after_start = df_with_start["frameId"] >= df_with_start["frame_start"]
+    is_outside_pocket = df_with_start["passer_out_of_pocket"]
+    is_max = df_with_start["frameId"] == df_with_start["frame_max"]
+    # Is after snap AND (has ending event OR is max frame OR is outside pocket)
+    is_pocket_end = is_after_start & (is_end_event | is_max | is_outside_pocket)
+
+    # Find and join end frames to event data.
     df_end = (
-        df_events.query(end_query)
+        df_with_start[is_pocket_end]
         .groupby(play_keys)
         .agg(**{"frame_end": ("frameId", min)})
         .reset_index()
     )
-
-    # Join start and end frames to main DataFrame, also join in passer out of
-    # pocket indicator for each frame.
-    df = (
-        df_events.merge(df_start, on=play_keys, how="left")
-        .merge(df_end, on=play_keys, how="left")
-        .merge(df_passer_out_of_pocket, on=play_keys + ["frameId"], how="left")
+    df = df_events.merge(df_start, on=play_keys, how="left").merge(
+        df_end, on=play_keys, how="left"
     )
 
-    # Determine pocket eligibility.
-    # TODO(vinesh): Make the frame_start and frame_end columns based on pocket
-    # eligibility, not just pocket ending events.
-    # TODO(vinesh): Handle edge cases where pocket can be re-established, such
-    # as a botched snap followed by pass from pocket.
-    df["eligible_for_pocket"] = df.apply(is_eligible_for_pocket, axis=1)
-    if not keep_intermediate_columns:
-        drop_columns = ["frame_start", "frame_end", "passer_out_of_pocket"]
-        df.drop(columns=drop_columns, inplace=True)
+    # Fill plays with null start and end frames with None.
+    df["frame_start"] = df["frame_start"].replace({np.nan: None})
+    df["frame_end"] = df["frame_end"].replace({np.nan: None})
+
     return df

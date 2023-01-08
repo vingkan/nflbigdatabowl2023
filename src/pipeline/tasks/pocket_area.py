@@ -1,10 +1,10 @@
-import dataclasses
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 
 from src.metrics.pocket_area.base import PocketArea, PocketAreaFunction
+from src.metrics.pocket_area.helpers import pocket_to_json
 from src.pipeline.tasks.frames import FRAME_PRIMARY_KEY
 
 
@@ -23,7 +23,7 @@ def calculate_pocket_safely(
         try:
             pocket_area = calculate_fn(records)
         except Exception as ex:
-            print(f"Exception in {function_name}: {ex}")
+            # print(f"Exception in {function_name}: {ex}")
             pocket_area = PocketArea(area=np.nan)
 
         if not isinstance(pocket_area, PocketArea):
@@ -32,11 +32,7 @@ def calculate_pocket_safely(
             raise TypeError(message)
 
         # Convert the pocket area dataclass to a dictionary.
-        # The dataclass does not allow a None for area, but we cannot parse a
-        # np.nan from a string, so if the area is np.nan, set it to None.
-        pocket_dict = dataclasses.asdict(pocket_area)
-        if np.isnan(pocket_dict["area"]):
-            pocket_dict["area"] = None
+        pocket_dict = pocket_to_json(pocket_area)
         return pocket_dict
 
     return calculate

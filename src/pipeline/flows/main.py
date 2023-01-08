@@ -23,30 +23,33 @@ from src.pipeline.tasks import (
     write_csv,
 )
 
-DATA_DIR = "/workspace/nflbigdatabowl2023/data"
+DEFAULT_INPATH = "/workspace/nflbigdatabowl2023/data/raw"
+DEFAULT_OUTPATH = "/workspace/nflbigdatabowl2023/data/outputs"
 
 
 @flow
 def main_flow(**kwargs):
     # Get flow parameters.
+    inpath = kwargs.get("inpath", DEFAULT_INPATH)
+    outpath = kwargs.get("outpath", DEFAULT_OUTPATH)
     # Maximum number of weeks to process. If None, process all.
-    max_weeks = kwargs.get("max_weeks") or 8
+    max_weeks = kwargs.get("max_weeks", 8)
     # Maximum number of games to process. If None, process all.
-    max_games = kwargs.get("max_games")
+    max_games = kwargs.get("max_games", None)
     # Maximum number of plays per game to process. If None, process all.
-    max_plays = kwargs.get("max_plays")
+    max_plays = kwargs.get("max_plays", None)
     # How far the passer can go along the field width from the ball snap to be
     # considered in the officiating pocket area.
-    max_yards_from_snap = 7
+    max_yards_from_snap = kwargs.get("max_yards_from_snap", 7)
     # How many frames to include in the time windows (e.g. x_after_snap,
     # x_before_pass). For example, 20 frames leads to 2 second windows.
-    window_size_frames = 20
+    window_size_frames = kwargs.get("window_size_frames", 20)
 
     # Read raw data.
-    df_pff = task(read_csv)(f"{DATA_DIR}/raw/pffScoutingData.csv")
-    df_plays = task(read_csv)(f"{DATA_DIR}/raw/plays.csv")
+    df_pff = task(read_csv)(f"{inpath}/pffScoutingData.csv")
+    df_plays = task(read_csv)(f"{inpath}/plays.csv")
     df_tracking_all = task(read_tracking_data)(
-        f"{DATA_DIR}/raw/week", weeks=max_weeks
+        f"{inpath}/week", weeks=max_weeks
     )
 
     # Limit to max weeks, games, and plays per game, if requested.
@@ -76,7 +79,7 @@ def main_flow(**kwargs):
     # back to tracking data.
     df_clean_events = task(clean_event_data)(df_tracking_limited)
     df_events = task(get_pocket_eligibility)(
-        df_clean_events, df_passer_out_of_pocket, keep_intermediate_columns=True
+        df_clean_events, df_passer_out_of_pocket
     )
     df_tracking = task(augment_tracking_events)(df_tracking_rotated, df_events)
 
@@ -106,11 +109,7 @@ def main_flow(**kwargs):
     )
 
     # Write outputs to disk.
-    task(write_csv)(
-        df_tracking_display, f"{DATA_DIR}/outputs/tracking_display.csv"
-    )
-    task(write_csv)(df_events, f"{DATA_DIR}/outputs/events.csv")
-    task(write_csv)(df_frames, f"{DATA_DIR}/outputs/frames.csv")
-    task(write_csv)(df_frame_records, f"{DATA_DIR}/outputs/frame_records.csv")
-    task(write_csv)(df_areas, f"{DATA_DIR}/outputs/pocket_areas.csv")
-    task(write_csv)(df_play_metrics, f"{DATA_DIR}/outputs/play_metrics.csv")
+    task(write_csv)(df_tracking_display, f"{outpath}/tracking_display.csv")
+    task(write_csv)(df_events, f"{outpath}/events.csv")
+    task(write_csv)(df_areas, f"{outpath}/pocket_areas.csv")
+    task(write_csv)(df_play_metrics, f"{outpath}/play_metrics.csv")

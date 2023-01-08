@@ -63,6 +63,10 @@ def test_get_frames_for_time_windows():
         df_events, df_areas, window_size_frames=10
     )
 
+    # Sort actual rows and transform to list of dictionaries.
+    sort_cols = ["gameId", "playId", "window_type", "method", "frameId"]
+    actual_rows = actual.sort_values(sort_cols).to_dict(orient="records")
+
     # Helper function to create output rows.
     output_columns = [
         "gameId",
@@ -72,24 +76,34 @@ def test_get_frames_for_time_windows():
         "method",
         "pocket",
         "area",
+        "frame_start",
+        "frame_end",
     ]
     output_row = row_creator(output_columns)
     expected = [
         # Filter to only plays 10 frames after snap.
-        output_row(1, 1, 2, "after_snap", "A", "(pocket a)", 90),
-        output_row(1, 1, 11, "after_snap", "A", "(pocket a)", 80),
-        output_row(1, 1, 12, "after_snap", "A", "(pocket a)", 70),
+        output_row(1, 1, 2, "after_snap", "A", "(pocket a)", 90, 2, 38),
+        output_row(1, 1, 11, "after_snap", "A", "(pocket a)", 80, 2, 38),
+        output_row(1, 1, 12, "after_snap", "A", "(pocket a)", 70, 2, 38),
         # Handle multiple pocket area methods.
-        output_row(1, 1, 2, "after_snap", "B", "(pocket b)", 9),
-        output_row(1, 1, 11, "after_snap", "B", "(pocket b)", 8),
-        output_row(1, 1, 12, "after_snap", "B", "(pocket b)", 7),
+        output_row(1, 1, 2, "after_snap", "B", "(pocket b)", 9, 2, 38),
+        output_row(1, 1, 11, "after_snap", "B", "(pocket b)", 8, 2, 38),
+        output_row(1, 1, 12, "after_snap", "B", "(pocket b)", 7, 2, 38),
+        # When the pocket ends due to a pass, before_end matches before_pass.
+        output_row(1, 1, 28, "before_end", "A", "(pocket a)", 40, 2, 38),
+        output_row(1, 1, 29, "before_end", "A", "(pocket a)", 30, 2, 38),
+        output_row(1, 1, 38, "before_end", "A", "(pocket a)", 20, 2, 38),
+        output_row(1, 1, 28, "before_end", "B", "(pocket b)", 4, 2, 38),
+        output_row(1, 1, 29, "before_end", "B", "(pocket b)", 3, 2, 38),
+        output_row(1, 1, 38, "before_end", "B", "(pocket b)", 2, 2, 38),
         # Filter to only plays 10 frames before pass.
-        output_row(1, 1, 28, "before_pass", "A", "(pocket a)", 40),
-        output_row(1, 1, 29, "before_pass", "A", "(pocket a)", 30),
-        output_row(1, 1, 38, "before_pass", "A", "(pocket a)", 20),
+        output_row(1, 1, 28, "before_pass", "A", "(pocket a)", 40, 2, 38),
+        output_row(1, 1, 29, "before_pass", "A", "(pocket a)", 30, 2, 38),
+        output_row(1, 1, 38, "before_pass", "A", "(pocket a)", 20, 2, 38),
         # Handle multiple pocket area methods.
-        output_row(1, 1, 28, "before_pass", "B", "(pocket b)", 4),
-        output_row(1, 1, 29, "before_pass", "B", "(pocket b)", 3),
-        output_row(1, 1, 38, "before_pass", "B", "(pocket b)", 2),
+        output_row(1, 1, 28, "before_pass", "B", "(pocket b)", 4, 2, 38),
+        output_row(1, 1, 29, "before_pass", "B", "(pocket b)", 3, 2, 38),
+        output_row(1, 1, 38, "before_pass", "B", "(pocket b)", 2, 2, 38),
         # No rows for game 2, play 2 since it is shorter than the time window.
     ]
+    assert actual_rows == expected
