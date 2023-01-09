@@ -27,8 +27,17 @@ def get_team_scatter_ranker(df_play_info: pd.DataFrame) -> Callable:
         df_gp["median_time_in_pocket"] = df_gp["median_time_in_pocket"] / 10.0
         df_out = df_gp.sort_values(
             by=["median_area"], ascending=False
-        ).reset_index()
-        return df_out
+        ).reset_index(drop=True)
+        df_out["rank"] = np.arange(1, len(df_out) + 1, 1)
+        out_cols = [
+            "rank",
+            "team",
+            "plays",
+            "median_area",
+            "median_time_in_pocket",
+            "sack_rate",
+        ]
+        return df_out[out_cols]
 
     return ranker
 
