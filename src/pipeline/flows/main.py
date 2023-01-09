@@ -1,3 +1,4 @@
+import pandas as pd
 from prefect import flow, task, unmapped
 
 from src.metrics.pocket_area.all import POCKET_AREA_METHODS
@@ -74,14 +75,9 @@ def main_flow(**kwargs):
     # Find frames where the passer has left the possible pocket area.
     # Requires actual yard lines, which means we must use the aligned and
     # rotated tracking data, before centering is applied.
-    # data
     df_passer_out_of_pocket = task(get_passer_out_of_pocket)(
         df_tracking_rotated, df_pff, max_yards_from_snap
     )
-
-    # Center tracking data on ball snap point so that all spatial logic has the
-    # same origin and coordinate system.
-    df_tracking_centered = task(center_tracking_data)(df_tracking_rotated)
 
     # Process event data: clean events, add pocket eligibility data, and join
     # back to tracking data.
@@ -89,7 +85,14 @@ def main_flow(**kwargs):
     df_events = task(get_pocket_eligibility)(
         df_clean_events, df_passer_out_of_pocket
     )
-    df_tracking = task(augment_tracking_events)(df_tracking_centered, df_events)
+    df_tracking_with_events = task(augment_tracking_events)(
+        df_tracking_rotated, df_events
+    )
+
+    # Center tracking data on ball snap point so that all spatial logic has the
+    # same origin and coordinate system.
+    # Must come after augmenting with event data to get the clean event names.
+    df_tracking = task(center_tracking_data)(df_tracking_with_events)
 
     # Transform tracking data to display format.
     df_tracking_display = task(transform_to_tracking_display)(

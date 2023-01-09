@@ -95,7 +95,8 @@ def center_tracking_data(df_tracking: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Join ball snap coordinates back to tracking data.
-    df = df.merge(df_ball_snap, on=play_keys, how="left")
+    # Use inner join to filter out plays that do not have a snap.
+    df = df.merge(df_ball_snap, on=play_keys, how="inner")
 
     # Shift coordinates so that ball snap is at (0, 0).
     # Angles are not affected, only position coordinates.
