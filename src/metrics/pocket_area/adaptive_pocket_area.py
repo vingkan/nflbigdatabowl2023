@@ -86,7 +86,7 @@ def calculate_adaptive_pocket_area(frame: pd.DataFrame) -> PocketArea:
     # within the distance from the closest rusher to the quarterback
     closest_rusher, closest_distance = find_closest_player(passer, rushers)
     closest_lineman = filter_players_within_difference(
-        passer, blockers, closest_distance, 0.5
+        passer, blockers, closest_distance, 0.75
     )
 
     # adjusted pocket will get all the pass rushers that make a valid pocket along with the qb

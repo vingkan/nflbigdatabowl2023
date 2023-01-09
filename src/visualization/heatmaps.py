@@ -96,16 +96,19 @@ def get_heatmap_from_pocket_shapes(
     return heatmap, extent
 
 
-def get_play_pocket(df_play_metrics, df_areas, df_plays):
+def get_play_pocket(df_play_metrics, df_areas, df_plays, window_size_frames):
     """
     Choose one frame per play and area method and get
     the pocket object for that frame.
     """
     # Find the frame X seconds before the pocket ends.
     frames_per_second = 10
+    half_window = window_size_frames // 2.0
     df = pd.DataFrame(df_play_metrics)
     df = df[df["window_type"] == "before_end"]
-    df["pocket_frame"] = (frames_per_second * df["time_start"]).astype(int)
+    df["pocket_frame"] = (
+        (frames_per_second * df["time_start"]) + half_window
+    ).astype(int)
 
     # Restrict the left side to one row per play, then
     # explode it with the right to get one row per play
