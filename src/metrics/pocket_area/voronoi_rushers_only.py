@@ -7,8 +7,10 @@ from src.metrics.pocket_area.base import PocketArea, PocketAreaMetadata
 from src.metrics.pocket_area.helpers import split_records_by_role
 from src.pipeline.tasks.constants import FIELD_WIDTH
 
-FIELD_WIDTH_MIN = 0
-FIELD_WIDTH_MAX = FIELD_WIDTH
+# Adjusted for centered coordinates, not exactly correct because of hash marks,
+# but close enough to be approximate.
+FIELD_WIDTH_MIN = -1 * (FIELD_WIDTH / 2.0)
+FIELD_WIDTH_MAX = FIELD_WIDTH / 2.0
 
 
 def voronoi_rushers_only(players: List[Dict]) -> PocketArea:

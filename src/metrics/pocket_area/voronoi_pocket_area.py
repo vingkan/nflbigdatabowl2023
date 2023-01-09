@@ -7,8 +7,10 @@ from src.metrics.pocket_area.base import PocketArea, PocketAreaMetadata
 from src.metrics.pocket_area.helpers import split_records_by_role
 from src.pipeline.tasks.constants import FIELD_WIDTH
 
-FIELD_WIDTH_MIN = 0
-FIELD_WIDTH_MAX = FIELD_WIDTH
+# Adjusted for centered coordinates, not exactly correct because of hash marks,
+# but close enough to be approximate.
+FIELD_WIDTH_MIN = -1 * (FIELD_WIDTH / 2.0)
+FIELD_WIDTH_MAX = FIELD_WIDTH / 2.0
 
 
 def voronoi_pocket_area(players: List[Dict]) -> PocketArea:
@@ -26,7 +28,6 @@ def voronoi_pocket_area(players: List[Dict]) -> PocketArea:
         # so that the pocket boundary will fall at the midpoint.
         (passer["x"], passer["y"] - (2 * pocket_max_depth_behind_passer)),
         # Limit pocket area in front of passer to line of scrimmage (y = 0).
-        # TODO(vinesh): Reorient tracking data so that y = 0 is L.O.S.
         (passer["x"], 0),
         # Limit pocket area to sides of passer. Double the max side width so
         # that the pocket boundary will fall at the midpoint.
