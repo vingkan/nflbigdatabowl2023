@@ -82,13 +82,13 @@ def center_tracking_data(df_tracking: pd.DataFrame) -> pd.DataFrame:
     # Copy input DataFrame.
     df = pd.DataFrame(df_tracking)
 
-    # Get ball coordinates at snap.
+    # Get ball coordinates at snap (technically a few frames before snap).
     play_keys = ["gameId", "playId"]
     snap_columns = ["x", "y"]
-    snap_filter_columns = ["event", "team"]
+    snap_filter_columns = ["frameId", "frame_before_snap", "team"]
     df_ball_snap = (
         df[play_keys + snap_columns + snap_filter_columns]
-        .query("event == 'ball_snap' and team == 'football'")
+        .query("frameId == frame_before_snap and team == 'football'")
         .drop_duplicates()
         .drop(columns=snap_filter_columns)
         .rename(columns={"x": "ball_snap_x", "y": "ball_snap_y"})

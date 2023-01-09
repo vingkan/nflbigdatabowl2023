@@ -45,6 +45,7 @@ def clean_event_data(df_tracking: pd.DataFrame) -> pd.DataFrame:
         - playId
         - frameId
         - event (Optional[str]): Cleaned event name, without redundant events.
+        - frame_before_snap: Frame ID a few frames before snap.
 
     The cleaned event name:
     - No longer has auto event names
@@ -84,7 +85,19 @@ def clean_event_data(df_tracking: pd.DataFrame) -> pd.DataFrame:
     df_with_first["event"] = df_with_first["clean_event"]
     drop_columns = ["first_frame", "is_first_event_of_type", "clean_event"]
     df_with_first.drop(columns=drop_columns, inplace=True)
-    return df_with_first
+
+    max_frames_before_snap = 5
+    df_snap = pd.DataFrame(df_with_first.query("event == 'ball_snap'"))
+    df_snap["min"] = 1
+    df_snap["before_snap"] = df_snap["frameId"] - max_frames_before_snap
+    df_snap["frame_before_snap"] = df_snap[["before_snap", "min"]].max(axis=1)
+    before_snap_cols = ["gameId", "playId", "frame_before_snap"]
+    df_snap = df_snap[before_snap_cols].drop_duplicates()
+
+    # Inner join to remove plays without a snap.
+    df_out = df_with_first.merge(df_snap, on=["gameId", "playId"], how="inner")
+
+    return df_out
 
 
 def augment_tracking_events(
@@ -97,5 +110,7 @@ def augment_tracking_events(
     """
     # Returns a copy of the DataFrame without the old event column.
     df_base = df_tracking.drop(columns=["event"])
-    df_with_event = df_base.merge(df_events, on=["gameId", "playId", "frameId"])
+    # Use inner join to to remove plays whose events were not valid.
+    join_cols = ["gameId", "playId", "frameId"]
+    df_with_event = df_base.merge(df_events, on=join_cols, how="inner")
     return df_with_event

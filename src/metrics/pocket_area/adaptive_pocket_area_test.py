@@ -24,18 +24,18 @@ def test_one_rusher_valid_to_make_pocket():
 
 def test_multiple_rushers_valid_to_make_pocket():
     frame = [
-        {"role": "passer", "x": 0, "y": 5},
-        {"role": "blocker", "x": 0, "y": 0},
-        {"role": "blocker", "x": 1, "y": 5},
-        {"role": "blocker", "x": 5, "y": 0},
-        {"role": "blocker", "x": 5, "y": 5},
-        {"role": "blocker", "x": 0, "y": -2},
-        {"role": "rusher", "x": 1, "y": 6},
-        {"role": "rusher", "x": 5, "y": 5},
-        {"role": "rusher", "x": 1, "y": 4},
-        {"role": "rusher", "x": 2, "y": 6},
+        {"role": "passer", "x": 0, "y": -1},
+        {"role": "blocker", "x": 0, "y": -6},
+        {"role": "blocker", "x": 1, "y": -1},
+        {"role": "blocker", "x": 5, "y": -6},
+        {"role": "blocker", "x": 5, "y": -1},
+        {"role": "blocker", "x": 0, "y": -8},
+        {"role": "rusher", "x": 1, "y": 0},
+        {"role": "rusher", "x": 5, "y": -1},
+        {"role": "rusher", "x": 1, "y": -2},
+        {"role": "rusher", "x": 2, "y": 0},
     ]
     actual = calculate_adaptive_pocket_area(frame)
 
     assert actual.area == pytest.approx(0.5)
-    assert actual.metadata.vertices == [(0, 5), (1, 5), (1, 6)]
+    assert actual.metadata.vertices == [(0, -1), (1, -1), (1, 0)]
