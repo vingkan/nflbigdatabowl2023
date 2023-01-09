@@ -49,7 +49,7 @@ color_for_team = {
 
 def get_team_scatter_ranker(df_play_info: pd.DataFrame) -> Callable:
     def ranker(method: str, formation: str):
-        query = f"method == '{method}' and offenseFormation in ({formation})"
+        query = f"method == '{method}' and dropBackType == 'TRADITIONAL'"
         df = pd.DataFrame(df_play_info.query(query))
         df["team"] = df["possessionTeam"]
         df["opponent"] = df["defensiveTeam"]
@@ -58,7 +58,7 @@ def get_team_scatter_ranker(df_play_info: pd.DataFrame) -> Callable:
         aggregations = {
             "plays": ("playId", len),
             "median_area": ("median_area", np.median),
-            "median_time_in_pocket": ("time_in_pocket", np.median),
+            "average_time_in_pocket": ("time_in_pocket", np.mean),
             "sack_rate": ("is_sack", np.mean),
         }
 
@@ -73,9 +73,11 @@ def get_team_scatter_ranker(df_play_info: pd.DataFrame) -> Callable:
             how="left",
         )
 
-        df_out["median_time_in_pocket"] = df_out["median_time_in_pocket"] / 10.0
-        df_out["median_time_in_pocket_opponent"] = (
-            df_out["median_time_in_pocket_opponent"] / 10.0
+        df_out["average_time_in_pocket"] = (
+            df_out["average_time_in_pocket"] / 10.0
+        )
+        df_out["average_time_in_pocket_opponent"] = (
+            df_out["average_time_in_pocket_opponent"] / 10.0
         )
         df_out = df_out.sort_values(
             by=["median_area"], ascending=False
@@ -85,7 +87,7 @@ def get_team_scatter_ranker(df_play_info: pd.DataFrame) -> Callable:
         out_cols = [
             "plays",
             "median_area",
-            "median_time_in_pocket",
+            "average_time_in_pocket",
             "sack_rate",
         ]
         out_cols_opp = [f"{col}_opponent" for col in out_cols]
@@ -140,7 +142,7 @@ def get_team_scatter_plotter(
         title = f"Area: {unsnake(method)}\nFormations: {formation_names}"
         ax.set_title(title)
         plot_team_scatter(ax, logos, pal[0], df, col_x, col_y)
-        fig.set_size_inches(8, 8)
+        fig.set_size_inches(10, 10)
 
     return plot
 
@@ -194,5 +196,5 @@ def plot_rankings(df_in, team_logos, area_col, ascending):
     ax.set_ylim(0, 1.2 * df_team_ranking[area_col].max())
     ax.set_xticks(np.arange(1, len(df_team_ranking) + 1, 1))
     ax.set_xlabel("Team Rank")
-    fig.set_size_inches(14, 4)
+    fig.set_size_inches(13, 4)
     return

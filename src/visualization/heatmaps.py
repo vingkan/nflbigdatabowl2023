@@ -8,6 +8,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from shapely import Point as ShapelyPoint
 from shapely import Polygon as ShapelyPolygon
 
+from src.metrics.pocket_area.helpers import vertices_from_shape
+
 
 def heatmap_from_points(points, total, bin_start, bin_end, bin_size):
     x = [p[0] for p in points]
@@ -105,10 +107,8 @@ def get_play_pocket(df_play_metrics, df_areas, df_plays, window_size_frames):
     frames_per_second = 10
     half_window = window_size_frames // 2.0
     df = pd.DataFrame(df_play_metrics)
-    df = df[df["window_type"] == "before_end"]
-    df["pocket_frame"] = (
-        (frames_per_second * df["time_start"]) + half_window
-    ).astype(int)
+    df = df[df["window_type"] == "entire_pocket"]
+    df["pocket_frame"] = (df["frame_end"] - half_window).astype(int)
 
     # Restrict the left side to one row per play, then
     # explode it with the right to get one row per play
@@ -169,3 +169,37 @@ def get_pocket_shapes_for_area(df_pocket, default_area):
     df_pocket_default = df_pocket[df_pocket["method"] == default_area]
     pocket_shapes = df_pocket_default["vertices"].apply(vertices_to_shape)
     return pocket_shapes
+
+
+def plot_heatmap(df_pocket_query, area_method, bin_start, bin_end, bin_size):
+    pocket_shapes = get_pocket_shapes_for_area(df_pocket_query, area_method)
+    heatmap, extent = get_heatmap_from_pocket_shapes(
+        pocket_shapes,
+        bin_start,
+        bin_end,
+        bin_size,
+        progress=True,
+    )
+
+    fig, ax = plt.subplots(1, 1)
+
+    im = ax.imshow(
+        heatmap, extent=extent, cmap="Greens", vmin=0, vmax=1, origin="lower"
+    )
+
+    # Colorbar on ax code based on : https://stackoverflow.com/a/49037495
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(im, cax=cax, orientation="vertical")
+
+    ax.set_title("Actual Heatmap")
+    ax.set_xlim(bin_start, bin_end)
+    ax.set_ylim(bin_start, 2)
+    ax.xaxis.set_major_locator(MultipleLocator(2))
+    ax.yaxis.set_major_locator(MultipleLocator(2))
+    ax.xaxis.set_minor_locator(MultipleLocator(1))
+    ax.yaxis.set_minor_locator(MultipleLocator(1))
+    ax.axhline(0, linestyle="--", color="gray")
+    ax.axvline(0, linestyle="--", color="gray")
+    ax.grid(which="both", linestyle="--", color="lightgray")
+    fig.set_size_inches(8, 8)
