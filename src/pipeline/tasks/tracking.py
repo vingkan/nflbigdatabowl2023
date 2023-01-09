@@ -73,6 +73,38 @@ def rotate_tracking_data(df_tracking: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def center_tracking_data(df_tracking: pd.DataFrame) -> pd.DataFrame:
+    """
+    Centers tracking data so that the origin is where the ball was snapped.
+
+    Tracking data should already be aligned and rotated.
+    """
+    # Copy input DataFrame.
+    df = pd.DataFrame(df_tracking)
+
+    # Get ball coordinates at snap.
+    play_keys = ["gameId", "playId"]
+    snap_columns = ["x", "y"]
+    snap_filter_columns = ["event", "team"]
+    df_ball_snap = (
+        df[play_keys + snap_columns + snap_filter_columns]
+        .query("event == 'ball_snap' and team == 'football'")
+        .drop_duplicates()
+        .drop(columns=snap_filter_columns)
+        .rename(columns={"x": "ball_snap_x", "y": "ball_snap_y"})
+    )
+
+    # Join ball snap coordinates back to tracking data.
+    df = df.merge(df_ball_snap, on=play_keys, how="left")
+
+    # Shift coordinates so that ball snap is at (0, 0).
+    # Angles are not affected, only position coordinates.
+    df["x"] = df["x"] - df["ball_snap_x"]
+    df["y"] = df["y"] - df["ball_snap_y"]
+
+    return df
+
+
 def transform_to_tracking_display(
     df_tracking: pd.DataFrame, df_plays: pd.DataFrame, df_pff: pd.DataFrame
 ) -> pd.DataFrame:
