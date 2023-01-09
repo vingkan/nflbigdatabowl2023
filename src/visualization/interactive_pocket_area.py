@@ -12,6 +12,7 @@ from matplotlib.ticker import MultipleLocator
 from shapely import Polygon as ShapelyPolygon
 
 from src.metrics.pocket_area.base import InvalidPocketError, PocketArea
+from src.metrics.pocket_area.helpers import pocket_from_json
 from src.visualization.pocket_area import (
     POCKET_KWARGS,
     PocketAreaNestedMap,
@@ -59,6 +60,35 @@ ROLE_TO_COLOR = {
     "Pass Block": "#027bbd",
     "Pass Rush": "#bd0250",
 }
+
+
+def get_frame_plotter(df_tracking, df_areas):
+    def plot(game_id, play_id, frame_ids):
+        # Get tracking and area data for play.
+        query_play = f"gameId == {game_id} and playId == {play_id}"
+        df_tracking_play = df_tracking.query(query_play)
+        df_areas_play = df_areas.query(query_play)
+
+        def get_patch(frame_id):
+            row = df_areas_play[df_areas_play["frameId"] == frame_id].iloc[0]
+            pocket = pocket_from_json(row["pocket"])
+            patch = get_pocket_patch(pocket)
+            area_value = row["area"]
+            return [patch], area_value
+
+        # Duplicate pocket underlay for each frame.
+        patches_and_area = [get_patch(f) for f in frame_ids]
+
+        # Plot each frame.
+        n_cols = len(frame_ids)
+        fig, axes = create_play_pocket_figure(df_tracking_play, n_cols)
+        for ax, frame, (ps, area) in zip(axes, frame_ids, patches_and_area):
+            plot_play_pocket(ax, df_tracking_play, frame, ps)
+            area_title = f"Pocket Area = {area:.1f} sq yds"
+            frame_and_area_title = f"Frame: {frame}\n{area_title}"
+            ax.set_title(frame_and_area_title)
+
+    return plot
 
 
 def patch_from_polygon(shape: ShapelyPolygon, **kwargs) -> PolygonPatch:
@@ -367,29 +397,114 @@ def plot_pocket_area_timeline(
     )
 
 
-def create_interactive_pocket_area(
+def get_play_pocket_and_timeline_plotter_multiple(
     df_tracking_display: pd.DataFrame,
     df_areas: pd.DataFrame,
-    continuous_update: bool = False,
 ):
-    """
-    Creates an interactive plot of a play, with a slider to seek frames.
+    # Get bounding box only for the players involved in the pocket.
+    pocket_bounds = get_play_pocket_bounds(df_tracking_display)
+    viewable_objects = get_viewable_objects(df_tracking_display, pocket_bounds)
 
-    The inner function plot_play_frame(frame_id) contains all the logic needed
-    on each frame redraw. The outer function scope contains the logic that can
-    be run once before activating the interactive plot.
+    # Determine figure dimensions based on play pocket bounds.
+    x_min, x_max, y_min, y_max = pocket_bounds
+    x_dim = PLOT_RATIO * (x_max - x_min)
+    y_dim = PLOT_RATIO * (y_max - y_min)
 
-    Parameters:
-        df_tracking_display: DataFrame transformed to contain all columns
-            needed for displaying tracking data, already filtered to only
-            include a single play.
-        df_areas: Optional DataFrame that includes pocket area data by frame
-            and by method, already filtered to only include a single play.
+    # Get frame range.
+    max_frames = df_tracking_display["frameId"].max()
 
-    Additional Visualization Parameters:
-        continuous_update: If True, redraw the plot while dragging the frame ID
-            slider. If False (default), only redraw after releasing the slider.
-    """
+    # Get the events in the play from the tracking data.
+    df_events = (
+        df_tracking_display[["frameId", "event", "frame_start", "frame_end"]][
+            df_tracking_display["event"].notna()
+        ]
+        .drop_duplicates()
+        .reset_index()
+    )
+
+    # Store objects for each frame to avoid filtering cost on each redraw.
+    objects_per_frame: Dict[int, List[Dict]] = {}
+    for obj in viewable_objects:
+        frame_id = obj["frameId"]
+        if frame_id not in objects_per_frame:
+            objects_per_frame[frame_id] = []
+        objects_per_frame[frame_id].append(obj)
+
+    # Parse and store pocket for each frame and method.
+    stored_pockets: PocketAreaNestedMap = get_pocket_area_nested_map(df_areas)
+
+    # Store the area timeline data for each method.
+    area_timeline_by_method: Dict[str, pd.DataFrame] = {}
+    pocket_area_methods = list(df_areas["method"].unique())
+    for method in pocket_area_methods:
+        df_method_areas = df_areas.query(f"method == '{method}'")
+        area_timeline_by_method[method] = df_method_areas
+
+    def plot_play_frame(frame_id: int, area_method: str, ax, ax2):
+        """Inner function to redraw plot for the given frame."""
+        # Retrieve only the objects for this frame.
+        objects = objects_per_frame.get(frame_id, [])
+
+        # Configure axes for frame and pocket area plot.
+        frame_title = f"Frame {frame_id}"
+        ax.set_title(frame_title)
+        ax.set_axisbelow(True)
+
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+
+        ax.xaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
+        ax.yaxis.set_major_locator(MultipleLocator(MAJOR_YARD_LINE))
+        ax.xaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
+        ax.yaxis.set_minor_locator(MultipleLocator(MINOR_YARD_LINE))
+
+        ax.grid(which="both", **GRID_LINE_KWARGS)
+
+        # Plot the pocket area over time for the play, if available.
+        df_play_areas = area_timeline_by_method.get(area_method)
+        if df_play_areas is not None:
+            plot_pocket_area_timeline(ax2, frame_id, df_play_areas, df_events)
+
+        # Render pocket, if any.
+        pocket_layer = []
+        pocket = stored_pockets.get(frame_id, {}).get(area_method)
+        if pocket:
+            # Add pocket area to title.
+            area_title = f"Pocket Area = {pocket.area:.1f} sq yds"
+            frame_and_area_title = f"{frame_title}\n{area_title}"
+            ax.set_title(frame_and_area_title)
+
+            # Render pocket.
+            pocket_patch = get_pocket_patch(pocket)
+            if pocket_patch:
+                pocket_layer.append(pocket_patch)
+
+        # Plot layers for pocket play visualizer.
+        player_layer = get_player_patches(objects)
+        patches_layers = [pocket_layer, player_layer]
+        plot_pocket_players(ax, patches_layers)
+        plot_jersey_numbers(ax, objects)
+
+    def plot_multiple(frame0: int, frame1: int, area_method: str):
+        # Configure figure and axes.
+        n_rows = 2
+        n_cols = 2
+        fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(n_rows, n_cols)
+        x_fig = FIG_X_RATIO_MULTIPLE_COLS * n_cols * x_dim
+        y_fig = n_rows * y_dim
+        fig.set_size_inches(x_fig, y_fig)
+        # Plot each frame and timeline.
+        plot_play_frame(frame0, area_method, ax0, ax1)
+        plot_play_frame(frame1, area_method, ax2, ax3)
+
+    other_info = (pocket_area_methods, x_dim, max_frames)
+    return plot_multiple, other_info
+
+
+def get_play_pocket_and_timeline_plotter(
+    df_tracking_display: pd.DataFrame,
+    df_areas: pd.DataFrame,
+):
     # Get bounding box only for the players involved in the pocket.
     pocket_bounds = get_play_pocket_bounds(df_tracking_display)
     viewable_objects = get_viewable_objects(df_tracking_display, pocket_bounds)
@@ -481,6 +596,39 @@ def create_interactive_pocket_area(
         patches_layers = [pocket_layer, player_layer]
         plot_pocket_players(ax, patches_layers)
         plot_jersey_numbers(ax, objects)
+
+    other_info = (pocket_area_methods, x_dim, max_frames)
+    return plot_play_frame, other_info
+
+
+def create_interactive_pocket_area(
+    df_tracking_display: pd.DataFrame,
+    df_areas: pd.DataFrame,
+    continuous_update: bool = False,
+):
+    """
+    Creates an interactive plot of a play, with a slider to seek frames.
+
+    The inner function plot_play_frame(frame_id) contains all the logic needed
+    on each frame redraw. The outer function scope contains the logic that can
+    be run once before activating the interactive plot.
+
+    Parameters:
+        df_tracking_display: DataFrame transformed to contain all columns
+            needed for displaying tracking data, already filtered to only
+            include a single play.
+        df_areas: Optional DataFrame that includes pocket area data by frame
+            and by method, already filtered to only include a single play.
+
+    Additional Visualization Parameters:
+        continuous_update: If True, redraw the plot while dragging the frame ID
+            slider. If False (default), only redraw after releasing the slider.
+    """
+    pocket_area_methods = list(df_areas["method"].unique())
+    plot_play_frame, vis_info = get_play_pocket_and_timeline_plotter(
+        df_tracking_display, df_areas
+    )
+    pocket_area_methods, x_dim, max_frames = vis_info
 
     # Attach an interactive slider to the redraw function.
     layout_width_pixels = PIXEL_RATIO * x_dim
