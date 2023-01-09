@@ -87,15 +87,18 @@ def test_clean_event_data():
         ]
     )
     actual = clean_event_data(df_tracking)
+    p1 = {"gameId": 1, "playId": 1}
+    p2 = {"gameId": 1, "playId": 2}
+    fbs = {"frame_before_snap": 1}
     expected = [
-        {"gameId": 1, "playId": 1, "frameId": 2, "event": None},
-        {"gameId": 1, "playId": 1, "frameId": 5, "event": "ball_snap"},
-        {"gameId": 1, "playId": 1, "frameId": 8, "event": None},
-        {"gameId": 1, "playId": 1, "frameId": 7, "event": "fumble"},
-        {"gameId": 1, "playId": 1, "frameId": 9, "event": "fumble"},
-        {"gameId": 1, "playId": 1, "frameId": 12, "event": "pass_forward"},
-        {"gameId": 1, "playId": 1, "frameId": 14, "event": None},
-        {"gameId": 1, "playId": 2, "frameId": 3, "event": "ball_snap"},
-        {"gameId": 1, "playId": 2, "frameId": 9, "event": None},
+        {**p1, "frameId": 2, "event": None, **fbs},
+        {**p1, "frameId": 5, "event": "ball_snap", **fbs},
+        {**p1, "frameId": 8, "event": None, **fbs},
+        {**p1, "frameId": 7, "event": "fumble", **fbs},
+        {**p1, "frameId": 9, "event": "fumble", **fbs},
+        {**p1, "frameId": 12, "event": "pass_forward", **fbs},
+        {**p1, "frameId": 14, "event": None, **fbs},
+        {**p2, "frameId": 3, "event": "ball_snap", **fbs},
+        {**p2, "frameId": 9, "event": None, **fbs},
     ]
     assert actual.to_dict(orient="records") == expected

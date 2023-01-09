@@ -15,6 +15,7 @@ from src.metrics.pocket_area.helpers import (
     split_records_by_role,
     vertices_from_shape,
 )
+from src.pipeline.tasks.constants import FIELD_WIDTH
 
 
 def limit_vertices_to_line_of_scrimmage(
@@ -26,9 +27,9 @@ def limit_vertices_to_line_of_scrimmage(
         return vertices
 
     # Create crop box to cut off area above line of scrimmage.
-    x = [p[1] for p in vertices]
-    min_x = min(x)
-    max_x = max(x)
+    # Use double the width of the field to ensure full crop.
+    min_x = -1 * FIELD_WIDTH
+    max_x = FIELD_WIDTH
     crop = [
         (min_x, 0),
         (max_x, 0),
