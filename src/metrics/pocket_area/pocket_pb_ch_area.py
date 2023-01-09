@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 from scipy.spatial import ConvexHull
+from shapely import Polygon
 
 from src.metrics.pocket_area.base import (
     InvalidPocketError,
@@ -12,7 +13,37 @@ from src.metrics.pocket_area.helpers import (
     get_distance,
     get_location,
     split_records_by_role,
+    vertices_from_shape,
 )
+
+
+def limit_vertices_to_line_of_scrimmage(
+    vertices: List[Tuple[float, float]]
+) -> List[Tuple[float, float]]:
+    # If y coordinates do not cross line of scrimmage, no changes needed.
+    max_y = max([p[1] for p in vertices])
+    if max_y <= 0:
+        return vertices
+
+    # Create crop box to cut off area above line of scrimmage.
+    x = [p[1] for p in vertices]
+    min_x = min(x)
+    max_x = max(x)
+    crop = [
+        (min_x, 0),
+        (max_x, 0),
+        (max_x, max_y),
+        (min_x, max_y),
+    ]
+
+    # Crop area past line of scrimmage.
+    crop_rect = Polygon(crop)
+    polygon = Polygon(vertices)
+    pocket = polygon.difference(crop_rect)
+
+    # Return vertices for cropped pocket.
+    cropped_vertices = vertices_from_shape(pocket)
+    return cropped_vertices
 
 
 def get_convex_hull(
@@ -24,9 +55,17 @@ def get_convex_hull(
     pocket = np.array(pocket)
     hull = ConvexHull(pocket)
     hull_points = pocket[hull.vertices]
-    vertices: List[Tuple[float, float]] = [(p[0], p[1]) for p in hull_points]
-    # In 2d figures, volume is actually the area of the convex hull (area is the perimeter)
-    area: float = hull.volume
+    hull_vertices: List[Tuple[float, float]] = [
+        (p[0], p[1]) for p in hull_points
+    ]
+
+    # Make sure the pocket does not extend past the line of scrimmage.
+    vertices = limit_vertices_to_line_of_scrimmage(hull_vertices)
+
+    # For consistency, always use Shapely to compute polygon area, in case the
+    # vertices were cropped.
+    hull_polygon = Polygon(vertices)
+    area = hull_polygon.area
     return area, vertices
 
 

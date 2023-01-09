@@ -3,6 +3,7 @@ import math
 from typing import Dict, List, Tuple
 
 import numpy as np
+from shapely import Polygon
 
 from src.metrics.pocket_area.base import (
     PFF_ROLE_TO_POCKET_ROLE,
@@ -109,3 +110,11 @@ def pocket_from_json(data: Dict) -> PocketArea:
 
     pocket = PocketArea(area, metadata)
     return pocket
+
+
+def vertices_from_shape(shape: Polygon):
+    return list(shape.exterior.coords)
+
+
+def vertices_to_shape(vertices):
+    return Polygon(vertices)
