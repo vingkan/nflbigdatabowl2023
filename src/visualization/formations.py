@@ -8,6 +8,18 @@ import seaborn as sns
 from src.visualization.helpers import unsnake
 
 
+def get_clean_play_data(df_plays):
+    df = pd.DataFrame(df_plays)
+    df["offenseFormation"] = df["offenseFormation"].fillna("MISSING")
+    return df
+
+
+def get_play_metrics_with_area_data(df_play_metrics, df_plays):
+    df = df_play_metrics.query("window_type == 'before_end'")
+    df = df.merge(df_plays, on=["gameId", "playId"], how="left")
+    return df
+
+
 def plot_area_distributions(df_median_areas: pd.DataFrame):
     area_methods = list(df_median_areas["method"].unique())
     n_rows = 2
@@ -25,8 +37,7 @@ def plot_area_distributions(df_median_areas: pd.DataFrame):
         ax.set_title(unsnake(method))
         ax.set_xlabel("Median Area")
     fig.tight_layout()
-    fig.set_size_inches(12, 8)
-    plt.show()
+    fig.set_size_inches(8, 6)
 
 
 def get_formation_distribution_plotter(
@@ -74,7 +85,6 @@ def get_all_formation_distributions_plotter(
                 continue
             sns.histplot(ser, ax=ax, stat="count", binwidth=10, color=color)
         fig.tight_layout()
-        fig.set_size_inches(12, 8)
-        plt.show()
+        fig.set_size_inches(8, 6)
 
     return plot

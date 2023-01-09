@@ -27,6 +27,8 @@ download_kaggle_data () {
     mkdir -p data/zipped
     mkdir -p data/raw
     mkdir -p data/processed
+    # Make folder for figures
+    mkdir -p data/figures
     # Refresh GitPod workspace environment variables
     eval $(gp env -e)
     # Download data using Kaggle credentials from user environment variables

@@ -12,7 +12,7 @@ from src.visualization.logos import LogoMap
 
 def get_team_scatter_ranker(df_play_info: pd.DataFrame) -> Callable:
     def ranker(method: str, formation: str):
-        query = f"method == '{method}' and offenseFormation == '{formation}'"
+        query = f"method == '{method}' and offenseFormation in ({formation})"
         df = pd.DataFrame(df_play_info.query(query))
         df["team"] = df["possessionTeam"]
         df["time_in_pocket"] = df["frame_end"] - df["frame_start"]
@@ -74,10 +74,11 @@ def get_team_scatter_plotter(
         fig, ax = plt.subplots(1, 1)
         df = rank_team_scatter(method, formation)
         pal = sns.hls_palette(1)
-        title = unsnake(f"Formation:_{formation},_Area:_{method}")
+        names = [unsnake(f[1:-1]) for f in formation.split(", ")]
+        formation_names = ", ".join(names)
+        title = f"Area: {unsnake(method)}\nFormations: {formation_names}"
         ax.set_title(title)
         plot_team_scatter(ax, logos, pal[0], df, col_x, col_y)
-        fig.set_size_inches(12, 12)
-        plt.show()
+        fig.set_size_inches(8, 8)
 
     return plot
