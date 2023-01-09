@@ -95,6 +95,14 @@ def get_frames_for_time_windows(
     df_after_snap = pd.DataFrame(df.query(query_x_after_snap))
     df_after_snap["window_type"] = "after_snap"
 
+    query_entire_pocket = (
+        "frame_start > -1 "
+        "and frameId >= frame_start "
+        "and frameId <= frame_end "
+    )
+    df_entire_pocket = pd.DataFrame(df.query(query_entire_pocket))
+    df_entire_pocket["window_type"] = "entire_pocket"
+
     query_x_before_end = (
         "frame_start > -1 "
         "and frame_end > -1 "
@@ -106,7 +114,9 @@ def get_frames_for_time_windows(
     df_before_end = pd.DataFrame(df.query(query_x_before_end))
     df_before_end["window_type"] = "before_end"
 
-    df_windows = pd.concat([df_after_snap, df_before_pass, df_before_end])
+    df_windows = pd.concat(
+        [df_after_snap, df_before_pass, df_before_end, df_entire_pocket]
+    )
 
     df_out = df_windows.merge(
         df_areas, on=["gameId", "playId", "frameId"], how="left"

@@ -15,7 +15,7 @@ def get_clean_play_data(df_plays):
 
 
 def get_play_metrics_with_area_data(df_play_metrics, df_plays):
-    df = df_play_metrics.query("window_type == 'before_end'")
+    df = df_play_metrics.query("window_type == 'entire_pocket'")
     df = df.merge(df_plays, on=["gameId", "playId"], how="left")
     return df
 

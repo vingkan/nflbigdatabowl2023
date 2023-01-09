@@ -55,6 +55,10 @@ def test_get_frames_for_time_windows():
             area_row(1, 1, 28, "B", "(pocket b)", 4),
             area_row(1, 1, 29, "B", "(pocket b)", 3),
             area_row(1, 1, 38, "B", "(pocket b)", 2),
+            area_row(2, 2, 1, "A", "(pocket a)", 60),
+            area_row(2, 2, 4, "A", "(pocket a)", 70),
+            area_row(2, 2, 1, "B", "(pocket b)", 66),
+            area_row(2, 2, 4, "B", "(pocket b)", 77),
         ]
     )
 
@@ -105,5 +109,26 @@ def test_get_frames_for_time_windows():
         output_row(1, 1, 29, "before_pass", "B", "(pocket b)", 3, 2, 38),
         output_row(1, 1, 38, "before_pass", "B", "(pocket b)", 2, 2, 38),
         # No rows for game 2, play 2 since it is shorter than the time window.
+        # Entire pocket, which does have game 2, play 2.
+        output_row(1, 1, 2, "entire_pocket", "A", "(pocket a)", 90, 2, 38),
+        output_row(1, 1, 11, "entire_pocket", "A", "(pocket a)", 80, 2, 38),
+        output_row(1, 1, 12, "entire_pocket", "A", "(pocket a)", 70, 2, 38),
+        output_row(1, 1, 13, "entire_pocket", "A", "(pocket a)", 60, 2, 38),
+        output_row(1, 1, 27, "entire_pocket", "A", "(pocket a)", 50, 2, 38),
+        output_row(1, 1, 28, "entire_pocket", "A", "(pocket a)", 40, 2, 38),
+        output_row(1, 1, 29, "entire_pocket", "A", "(pocket a)", 30, 2, 38),
+        output_row(1, 1, 38, "entire_pocket", "A", "(pocket a)", 20, 2, 38),
+        output_row(1, 1, 2, "entire_pocket", "B", "(pocket b)", 9, 2, 38),
+        output_row(1, 1, 11, "entire_pocket", "B", "(pocket b)", 8, 2, 38),
+        output_row(1, 1, 12, "entire_pocket", "B", "(pocket b)", 7, 2, 38),
+        output_row(1, 1, 13, "entire_pocket", "B", "(pocket b)", 6, 2, 38),
+        output_row(1, 1, 27, "entire_pocket", "B", "(pocket b)", 5, 2, 38),
+        output_row(1, 1, 28, "entire_pocket", "B", "(pocket b)", 4, 2, 38),
+        output_row(1, 1, 29, "entire_pocket", "B", "(pocket b)", 3, 2, 38),
+        output_row(1, 1, 38, "entire_pocket", "B", "(pocket b)", 2, 2, 38),
+        output_row(2, 2, 1, "entire_pocket", "A", "(pocket a)", 60, 1, 4),
+        output_row(2, 2, 4, "entire_pocket", "A", "(pocket a)", 70, 1, 4),
+        output_row(2, 2, 1, "entire_pocket", "B", "(pocket b)", 66, 1, 4),
+        output_row(2, 2, 4, "entire_pocket", "B", "(pocket b)", 77, 1, 4),
     ]
     assert actual_rows == expected
