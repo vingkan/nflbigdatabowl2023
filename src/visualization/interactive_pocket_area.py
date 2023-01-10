@@ -490,7 +490,7 @@ def get_play_pocket_and_timeline_plotter_multiple(
         n_rows = 2
         n_cols = 2
         fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(n_rows, n_cols)
-        x_fig = FIG_X_RATIO_MULTIPLE_COLS * n_cols * x_dim
+        x_fig = FIG_X_RATIO_ONE_COL * n_cols * x_dim
         y_fig = n_rows * y_dim
         fig.set_size_inches(x_fig, y_fig)
         # Plot each frame and timeline.
